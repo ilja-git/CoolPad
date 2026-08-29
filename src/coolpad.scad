@@ -38,8 +38,10 @@ pilot_m4  = printed ? 3.6  : 3.3;   // M4, fan screws
 // Envelope
 // ---------------------------------------------------------------------------
 
-length   = 168;   // X
-width    = 188;   // Y
+// Sized to an ASUS ROG Zephyrus G14 (approx 312 x 227). Generations vary
+// between roughly 311-324 wide and 220-227 deep, so check yours.
+length   = 312;   // X, across the laptop
+width    = 227;   // Y, front to back
 height   = 28;    // Z, assembled. Derived in SPEC.md section 4.
 corner_r = 8;
 
@@ -61,13 +63,22 @@ fan_boss_d      = 9;
 // throttled against the floor. Drives the total height.
 plenum_gap = 7;
 
+// The fan is centred, as specified. The G14 draws through vents toward the
+// rear of its underside, so if the grille should line up with those instead,
+// shift the fan back with this rather than moving anything by hand.
+fan_offset_y = 0;
+
 // ---------------------------------------------------------------------------
 // Intake louvers
 // ---------------------------------------------------------------------------
 
-slot_w     = 4.5;
-slot_pitch = 9;
-slot_inset = 6;    // extra clearance past the corner radius
+// Dropping the front wall from the intake costs a third of the open area,
+// so the remaining louvers are opened up to claw some of it back: a 6 mm
+// slot on a 9 mm pitch leaves a 3 mm land between slots.
+slot_w      = 6;
+slot_pitch  = 9;
+slot_inset  = 6;    // extra clearance past the corner radius
+band_margin = 1;    // solid material kept above and below each band
 
 // ---------------------------------------------------------------------------
 // Joint, grille, cable port, feet
@@ -111,12 +122,29 @@ split_z    = height / 2;          // top/bottom joint
 fan_z      = floor_t + plenum_gap; // underside of the fan
 cx         = length / 2;
 cy         = width / 2;
+fan_cy     = cy + fan_offset_y;   // fan/grille centre
+
+lo_band = [floor_t + band_margin, split_z - band_margin];
+hi_band = [split_z + band_margin, height - top_t - band_margin];
+
+// Free area of the louvers, against the fan's bore. The intake is the
+// restriction in this design, so this number is worth watching.
+function slot_area(h) = (h - slot_w) * slot_w + PI * pow(slot_w / 2, 2);
+intake_area = 2 * len(slot_positions(width))
+              * (slot_area(lo_band[1] - lo_band[0])
+                 + slot_area(hi_band[1] - hi_band[0]));
+bore_area   = PI * pow(fan_bore / 2, 2);
+
+echo(str("intake free area = ", round(intake_area), " mm2 = ",
+         round(100 * intake_area / bore_area), "% of the fan bore"));
 
 assert(height >= min_height,
        str("height=", height, " is too small: floor_t + plenum_gap + ",
            "fan_thickness + top_t = ", min_height));
-assert(fan_size + 4 <= min(length, width) - 2 * wall,
-       "fan does not fit inside the walls");
+assert(fan_size + 4 <= length - 2 * wall
+       && fan_cy - fan_size / 2 - 2 >= wall
+       && fan_cy + fan_size / 2 + 2 <= width - wall,
+       "fan does not fit inside the walls at this size/offset");
 assert(split_z > floor_t && split_z < height - top_t,
        "split_z falls outside the cavity");
 assert(part == "bottom" || part == "top" || part == "assembly",
@@ -163,14 +191,13 @@ function slot_positions(len) =
          x0   = (len - used) / 2 + slot_pitch / 2)
     [for (i = [0 : n - 1]) x0 + i * slot_pitch];
 
-// Louvered band around the left, right and front walls, between z0 and z1.
-// The rear wall (y = width) is left solid for the hinge.
+// Louvered band in the left and right walls, between z0 and z1.
+//
+// Left and right only: those are the "sides". The front and rear walls are
+// solid - the rear additionally reserved for the hinge.
 module intake_band(z0, z1) {
     h  = z1 - z0;
     zc = (z0 + z1) / 2;
-
-    for (x = slot_positions(length))            // front, y = 0
-        translate([x, -1, zc]) slot(slot_w, h, wall + 2);
 
     for (y = slot_positions(width))             // left, x = 0
         translate([-1, y, zc]) rotate([0, 0, -90]) slot(slot_w, h, wall + 2);
@@ -191,7 +218,7 @@ function foot_points() =
 
 function fan_points() =
     [for (dx = [-1, 1], dy = [-1, 1])
-        [cx + dx * fan_screw_pitch / 2, cy + dy * fan_screw_pitch / 2]];
+        [cx + dx * fan_screw_pitch / 2, fan_cy + dy * fan_screw_pitch / 2]];
 
 // Rear cable port, centred on the joint so each half carries a notch.
 module cable_port() {
@@ -214,7 +241,7 @@ module bottom() {
                     rrect(length - 2 * wall, width - 2 * wall,
                           max(corner_r - wall, 0.5), split_z);
 
-                intake_band(floor_t + 1, split_z - 1);
+                intake_band(lo_band[0], lo_band[1]);
                 cable_port();
             }
 
@@ -315,9 +342,9 @@ module top_part() {
         }
 
         // exhaust grille
-        translate([cx, cy, plate_z]) grille_openings();
+        translate([cx, fan_cy, plate_z]) grille_openings();
 
-        intake_band(split_z + 1, plate_z - 1);
+        intake_band(hi_band[0], hi_band[1]);
         cable_port();
 
         for (p = joint_points())
@@ -331,7 +358,7 @@ module top_part() {
 // ---------------------------------------------------------------------------
 
 module fan_mock() {
-    translate([cx - fan_size / 2, cy - fan_size / 2, fan_z]) {
+    translate([cx - fan_size / 2, fan_cy - fan_size / 2, fan_z]) {
         difference() {
             rrect(fan_size, fan_size, 5, fan_thickness);
             translate([fan_size / 2, fan_size / 2, -1])

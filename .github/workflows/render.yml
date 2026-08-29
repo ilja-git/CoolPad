@@ -105,9 +105,15 @@ jobs:
           # the underside is where the top part's real geometry is
           # shellcheck disable=SC2086
           render out/preview-top-under.png $preview --camera=0,0,0,125,0,25,0 -D 'part="top"'
-          # separation must clear the top plate or it hides the fan
+          # the top plate hides the fan unless the parts are well separated
+          # and the camera is low enough to see into the gap
           # shellcheck disable=SC2086
-          render out/preview-assembly.png $preview -D 'part="assembly"' -D 'explode=90'
+          render out/preview-assembly.png $preview --camera=0,0,0,68,0,25,0 \
+            -D 'part="assembly"' -D 'explode=110'
+
+          # the model echoes the louver free area; it is the restriction in
+          # this design, so carry it into the summary
+          grep -o 'intake free area = [^"]*' "$log" | tail -1 > /tmp/intake.txt || true
           # edge-on half cut: the only view that shows the plenum gap under
           # the fan, which is what sets the pad's height
           # shellcheck disable=SC2086
@@ -139,6 +145,12 @@ jobs:
               print(f"| {name} | {d[0]:g} | {d[1]:g} | {d[2]:g} |")
           args = os.environ.get("ARGS", "").strip()
           print(f"\nOverrides: `{args}`" if args else "\nOverrides: none (file defaults)")
+          try:
+              intake = open("/tmp/intake.txt").read().strip()
+              if intake:
+                  print(f"\nIntake: {intake}.")
+          except OSError:
+              pass
           print("\nThe top part's Z includes the 4 mm stop ridges.")
           print("\nSTLs and previews are in the artifact below.")
           PY
