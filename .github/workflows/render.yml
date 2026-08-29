@@ -36,6 +36,15 @@ jobs:
           sudo apt-get install -y --no-install-recommends openscad xvfb
           openscad --version
 
+      # The system python on the runner is externally managed, so pip cannot
+      # install into it.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install USDZ toolchain
+        run: pip install --quiet usd-core numpy-stl
+
       - name: Collect -D overrides
         id: params
         env:
@@ -62,7 +71,7 @@ jobs:
           ARGS: ${{ steps.params.outputs.args }}
         run: |
           set -o pipefail
-          mkdir -p out
+          mkdir -p out build
           log=$(mktemp)
 
           render() {
@@ -77,23 +86,30 @@ jobs:
               echo "::error::$target is empty or missing"
               return 1
             fi
-            # OpenSCAD only *warns* about bad geometry and still exits 0, so a
-            # broken, unprintable STL would sail through unnoticed.
-            case "$target" in
-              *.stl)
-                if grep -qi "not be a valid 2-manifold" "$log"; then
-                  echo "::error::$target is not a valid 2-manifold and cannot be printed"
-                  return 1
-                fi
-                ;;
-            esac
+          }
+
+          # A part someone will print. OpenSCAD only *warns* about bad
+          # geometry and still exits 0, so a broken, unprintable STL would
+          # sail through unnoticed. The assembly mesh deliberately does not
+          # go through here: it is several separate bodies, for looking at.
+          render_part() {
+            if ! render "$@"; then return 1; fi
+            if grep -qi "not be a valid 2-manifold" "$log"; then
+              echo "::error::$1 is not a valid 2-manifold and cannot be printed"
+              return 1
+            fi
           }
 
           preview="--render --autocenter --viewall --imgsize=1600,1200 --colorscheme=Tomorrow"
 
           # Printable parts
-          render out/coolpad-bottom.stl -D 'part="bottom"'
-          render out/coolpad-top.stl    -D 'part="top"'
+          render_part out/coolpad-bottom.stl -D 'part="bottom"'
+          render_part out/coolpad-top.stl    -D 'part="top"'
+
+          # Assembled mesh, for viewing only - never printed, so no manifold
+          # gate. Kept out of the artifact as an STL so it cannot be mistaken
+          # for something to slice; it ships as USDZ instead.
+          render build/assembly.stl -D 'part="assembly"'
 
           # iOS cannot preview an STL, so the PNGs are how this gets checked
           # from a phone. --render forces a full CGAL render, so the images
@@ -121,6 +137,22 @@ jobs:
             -D 'part="assembly"' -D 'section=true'
 
           ls -lh out
+
+      # iOS opens USDZ natively in Quick Look, including an AR mode that
+      # places the model in the room at true size. It is the only output here
+      # that can be turned around on a phone, so it is checked as strictly as
+      # the printable parts: a bad USDZ fails silently on the device.
+      - name: Convert to USDZ
+        run: |
+          set -o pipefail
+          python3 tools/stl2usdz.py out/coolpad-bottom.stl out/coolpad-bottom.usdz
+          python3 tools/stl2usdz.py out/coolpad-top.stl    out/coolpad-top.usdz
+          python3 tools/stl2usdz.py build/assembly.stl     out/coolpad-assembly.usdz \
+            --name coolpad_assembly
+          python3 tools/check_usdz.py \
+            out/coolpad-bottom.usdz   out/coolpad-bottom.stl \
+            out/coolpad-top.usdz      out/coolpad-top.stl \
+            out/coolpad-assembly.usdz build/assembly.stl
 
       # An --autocenter --viewall preview has no scale reference: a 168 mm pad
       # and a 1680 mm pad look identical. Put the real bounding boxes in the
@@ -152,7 +184,10 @@ jobs:
           except OSError:
               pass
           print("\nThe top part's Z includes the 4 mm stop ridges.")
-          print("\nSTLs and previews are in the artifact below.")
+          print("\nSTLs, USDZ and previews are in the artifact below.")
+          print("\nOn an iPhone: download the artifact, unzip it in Files, "
+                "then tap a `.usdz` - it opens in Quick Look, and the AR "
+                "button shows it at real size.")
           PY
 
       - name: Upload artifacts

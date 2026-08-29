@@ -12,7 +12,9 @@ open questions.
 ```
 SPEC.md                       what the part is and why
 src/coolpad.scad              the model, both parts
-.github/workflows/render.yml  CI: STLs + previews on every push
+tools/stl2usdz.py             STL -> USDZ, for viewing on a phone
+tools/check_usdz.py           verifies those USDZ files
+.github/workflows/render.yml  CI: STLs + USDZ + previews on every push
 ```
 
 ## The two parts
@@ -32,6 +34,8 @@ You do not need OpenSCAD installed. Every push runs the **Render** workflow
 and uploads an artifact named `coolpad-<sha>`:
 
 - `coolpad-bottom.stl`, `coolpad-top.stl` — the printable parts
+- `coolpad-bottom.usdz`, `coolpad-top.usdz`, `coolpad-assembly.usdz` —
+  the same geometry in a format iOS opens natively (see below)
 - `preview-bottom.png`, `preview-top.png`, `preview-top-under.png`
 - `preview-assembly.png` — exploded, showing how it goes together
 - `preview-section.png` — cut in half; the one that shows the plenum gap
@@ -40,8 +44,28 @@ and uploads an artifact named `coolpad-<sha>`:
 Open the repo on GitHub → **Actions** → the latest **Render** run. The run
 summary lists the measured bounding boxes, and the artifact is at the bottom.
 
-Since iOS cannot preview an STL, the PNGs are the way to check the result
-from a phone.
+## Viewing it on an iPhone
+
+iOS will not preview an STL, but it opens **USDZ** natively in Quick Look —
+no app needed. From the run artifact:
+
+1. Download the artifact zip in Safari.
+2. Open it in **Files** and tap the zip to unpack it (Files unzips in place).
+3. Tap a `.usdz`. It opens in Quick Look — drag to rotate and pinch to zoom.
+4. Tap **AR** to place it in the room.
+
+The files carry real-world scale (`metersPerUnit` 0.001, since the model is
+in millimetres), so AR shows the pad at its true size — hold the phone over
+your desk, or over the laptop, and the fit is directly checkable. They are
+also Y-up and dropped onto the ground plane, which is what Quick Look
+expects; `tools/check_usdz.py` enforces all of that in CI, because a
+malformed USDZ shows nothing on the device rather than reporting an error.
+
+`coolpad-assembly.usdz` is the one to look at first — it is the whole
+product, assembled, fan included.
+
+The PNGs remain the quickest glance, and the run summary carries the
+measured dimensions.
 
 ### Rendering different dimensions without a commit
 
@@ -94,6 +118,10 @@ openscad --render --autocenter --viewall --imgsize=1600,1200 \
 openscad --render --autocenter --viewall --imgsize=1600,1200 \
          --camera=0,0,0,72,0,12,0 \
          -D 'part="assembly"' -D 'section=true' -o section.png src/coolpad.scad
+
+# STL to USDZ for viewing on a phone, then verify the result
+python3 tools/stl2usdz.py coolpad-top.stl coolpad-top.usdz
+python3 tools/check_usdz.py coolpad-top.usdz coolpad-top.stl
 
 # a different fan changes the pad's height, so let height follow it
 openscad -D 'part="top"' -D 'fan_thickness=25' -D 'height=38' \
