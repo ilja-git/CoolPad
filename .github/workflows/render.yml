@@ -16,7 +16,7 @@ on:
         required: false
         default: ""
       height:
-        description: "height (mm, Z)"
+        description: "height (mm, Z, shell only)"
         required: false
         default: ""
 
@@ -57,32 +57,68 @@ jobs:
           echo "args=$args" >> "$GITHUB_OUTPUT"
           echo "Overrides:${args:- (none, using file defaults)}"
 
-      - name: Render STL
+      - name: Render parts and previews
         env:
           ARGS: ${{ steps.params.outputs.args }}
         run: |
+          set -o pipefail
           mkdir -p out
-          # shellcheck disable=SC2086  # $ARGS is deliberately word-split
-          xvfb-run -a openscad $ARGS -o out/coolpad.stl "$SCAD"
+          log=$(mktemp)
 
-      # iOS cannot preview an STL, so a PNG is how the result gets checked
-      # from a phone. --render forces a full CGAL render rather than the fast
-      # preview, so the image matches the geometry that was exported above.
-      - name: Render PNG preview
-        env:
-          ARGS: ${{ steps.params.outputs.args }}
-        run: |
+          render() {
+            target="$1"; shift
+            echo "--- $target"
+            # shellcheck disable=SC2086  # $ARGS is deliberately word-split
+            if ! xvfb-run -a openscad $ARGS "$@" -o "$target" "$SCAD" 2>&1 | tee "$log"; then
+              echo "::error::openscad failed for $target"
+              return 1
+            fi
+            if [ ! -s "$target" ]; then
+              echo "::error::$target is empty or missing"
+              return 1
+            fi
+            # OpenSCAD only *warns* about bad geometry and still exits 0, so a
+            # broken, unprintable STL would sail through unnoticed.
+            case "$target" in
+              *.stl)
+                if grep -qi "not be a valid 2-manifold" "$log"; then
+                  echo "::error::$target is not a valid 2-manifold and cannot be printed"
+                  return 1
+                fi
+                ;;
+            esac
+          }
+
+          preview="--render --autocenter --viewall --imgsize=1600,1200 --colorscheme=Tomorrow"
+
+          # Printable parts
+          render out/coolpad-bottom.stl -D 'part="bottom"'
+          render out/coolpad-top.stl    -D 'part="top"'
+
+          # iOS cannot preview an STL, so the PNGs are how this gets checked
+          # from a phone. --render forces a full CGAL render, so the images
+          # match the geometry that was exported above.
           # shellcheck disable=SC2086
-          xvfb-run -a openscad $ARGS \
-            --render \
-            --autocenter --viewall \
-            --imgsize=1600,1200 \
-            --colorscheme=Tomorrow \
-            -o out/preview.png "$SCAD"
+          render out/preview-bottom.png   $preview -D 'part="bottom"'
+          # shellcheck disable=SC2086
+          render out/preview-top.png      $preview -D 'part="top"'
+          # the underside is where the top part's real geometry is
+          # shellcheck disable=SC2086
+          render out/preview-top-under.png $preview --camera=0,0,0,125,0,25,0 -D 'part="top"'
+          # separation must clear the top plate or it hides the fan
+          # shellcheck disable=SC2086
+          render out/preview-assembly.png $preview -D 'part="assembly"' -D 'explode=90'
+          # edge-on half cut: the only view that shows the plenum gap under
+          # the fan, which is what sets the pad's height
+          # shellcheck disable=SC2086
+          render out/preview-section.png  $preview --camera=0,0,0,72,0,12,0 \
+            -D 'part="assembly"' -D 'section=true'
+
+          ls -lh out
 
       # An --autocenter --viewall preview has no scale reference: a 168 mm pad
-      # and a 1680 mm pad look identical. Put the real bounding box in the run
-      # summary so the numbers are visible next to the image on a phone.
+      # and a 1680 mm pad look identical. Put the real bounding boxes in the
+      # run summary so the numbers are visible next to the images on a phone.
       - name: Summarise
         # Cosmetic only (and it assumes ASCII STL, which OpenSCAD writes by
         # default) - never let it block the artifact upload.
@@ -91,26 +127,21 @@ jobs:
           ARGS: ${{ steps.params.outputs.args }}
         run: |
           python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-          import os
-          pts = [tuple(map(float, l.split()[1:4]))
-                 for l in open("out/coolpad.stl")
-                 if l.strip().startswith("vertex")]
-          dims = [max(p[i] for p in pts) - min(p[i] for p in pts) for i in range(3)]
-          args = os.environ.get("ARGS", "").strip()
+          import glob, os
           print("### CoolPad\n")
-          print("| axis | size (mm) |")
-          print("| ---- | --------- |")
-          for axis, d in zip("XYZ", dims):
-              print(f"| {axis} | {d:g} |")
+          print("| part | X (mm) | Y (mm) | Z (mm) |")
+          print("| ---- | ------ | ------ | ------ |")
+          for f in sorted(glob.glob("out/*.stl")):
+              pts = [tuple(map(float, l.split()[1:4]))
+                     for l in open(f) if l.strip().startswith("vertex")]
+              d = [max(p[i] for p in pts) - min(p[i] for p in pts) for i in range(3)]
+              name = os.path.basename(f).replace("coolpad-", "").replace(".stl", "")
+              print(f"| {name} | {d[0]:g} | {d[1]:g} | {d[2]:g} |")
+          args = os.environ.get("ARGS", "").strip()
           print(f"\nOverrides: `{args}`" if args else "\nOverrides: none (file defaults)")
-          print("\nSTL and `preview.png` are in the artifact below.")
+          print("\nThe top part's Z includes the 4 mm stop ridges.")
+          print("\nSTLs and previews are in the artifact below.")
           PY
-
-      - name: Check outputs
-        run: |
-          test -s out/coolpad.stl || { echo "::error::STL is empty or missing"; exit 1; }
-          test -s out/preview.png || { echo "::error::PNG is empty or missing"; exit 1; }
-          ls -lh out
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
