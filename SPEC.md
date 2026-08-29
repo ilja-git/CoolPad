@@ -1,6 +1,6 @@
 # CoolPad — specification
 
-Rev 0.2 — sized to the target laptop, intake corrected to left/right only.
+Rev 0.3 — targeted at the GA403 G14.
 
 ## 1. Product
 
@@ -10,16 +10,11 @@ pushes it up through a grille into the laptop's underside.
 
 ### Target laptop
 
-Assumed **312 × 227 mm** footprint, ~1.6–1.75 kg. The G14 footprint varies
-by generation, so confirm which one:
+Target is the **GA403** generation (2024 on): approximately
+**311 × 220 × 16 mm**, ~1.5 kg. For reference, the earlier generations are
+GA401 (2020–21) at 324 × 222 and GA402 (2022–23) at 312 × 227.
 
-| Generation | Approx. footprint |
-| ---------- | ----------------- |
-| GA401 (2020–21) | 324 × 222 mm |
-| GA402 (2022–23) | 312 × 227 mm |
-| GA403 (2024–) | 311 × 220 mm |
-
-The pad matches the assumed footprint exactly, so the laptop's edges sit
+The pad matches the laptop footprint exactly, so the laptop's edges sit
 flush with the pad's. `length` and `width` are parametric, so retargeting a
 different generation is a `-D` override, not a redesign.
 
@@ -79,10 +74,10 @@ The model computes and echoes the result on every render, and CI prints it
 in the run summary:
 
 ```
-intake free area = 4072 mm2 = 41% of the fan bore
+intake free area = 3887 mm2 = 39% of the fan bore
 ```
 
-41% is a real restriction — the louvers, not the grille, are what limits
+39% is a real restriction — the louvers, not the grille, are what limits
 flow. It is workable for a low-pressure axial fan but it is the first thing
 to attack if the pad underperforms. The levers, in order of cheapness:
 widen the slots further, deepen the louvered bands, or reopen the front
@@ -113,8 +108,8 @@ silently broken geometry.
 
 | Parameter | Default | Note |
 | --------- | ------- | ---- |
-| `length` (X) | 312 mm | across the laptop |
-| `width` (Y)  | 227 mm | front to back |
+| `length` (X) | 311 mm | across the laptop (GA403) |
+| `width` (Y)  | 220 mm | front to back |
 | `height` (Z) | 28 mm  | derived from §4 |
 | `corner_r`   | 8 mm   | |
 | `wall`, `floor_t`, `top_t` | 3 mm | |
@@ -131,20 +126,15 @@ top plate, so the top part's true bounding box is 32 mm tall. The CI run
 summary prints measured bounding boxes, so expect 14 for the tray and 32
 for the lid.
 
-### Printing the test parts is now the problem
+### Print size
 
-At 312 × 227 neither half fits a common hobby bed:
+Each half is 311 × 220 in plan, so a test print needs a **350 mm-class bed**
+(Bambu H2D, Prusa XL). It does not fit a 220, 250 or 256 mm machine.
 
-| Bed | Fits? |
-| --- | ----- |
-| 220 × 220 (Ender 3) | no |
-| 250 × 210 (Prusa MK4) | no |
-| 256 × 256 (Bambu P1S / X1C) | no |
-| 350 × 320 (Bambu H2D) | yes |
-| 360 × 360 (Prusa XL) | yes |
-
-This is the direct consequence of sizing to the laptop, and it needs a
-decision — see §8. It does not affect the aluminium production part.
+The parts are **not** split for printing: the printer is assumed big enough.
+If that turns out to be wrong, splitting each half across the short axis
+with a bolted lap joint is the fallback, and it is easier to add than to
+design around now.
 
 ## 6. Hinge — not in this revision
 
@@ -182,7 +172,7 @@ needed; the louvers are bridged over their short dimension.
 
 ### Top plate stiffness
 
-A 3 mm plate now spans 312 mm. In aluminium that is fine under a ~1.7 kg
+A 3 mm plate now spans 311 mm. In aluminium that is fine under a ~1.5 kg
 laptop whose weight lands mostly over the perimeter and the grille. In PLA
 it is marginal and the plate may bow visibly. If the first print flexes,
 the fix is ribs on the underside running **left to right**, along the
@@ -191,22 +181,19 @@ guessed at.
 
 ## 8. Open questions
 
-1. **Print bed.** What is the largest part your printer can make? At
-   312 × 227 the test parts need a 350 mm-class bed. If yours is smaller,
-   the options are to split each half and join it, or to shrink the pad
-   below the laptop footprint for test prints only. This one is blocking
-   for a physical prototype.
-2. **G14 generation**, per §1 — it changes the footprint by up to 13 mm.
-3. **Fan alignment.** The fan is centred, as specified. The G14 draws
+1. **Print bed** — assumed to take a 311 × 220 part. Worth confirming
+   against the actual machine before committing to a test print, since
+   nothing in the model is split.
+2. **Fan alignment.** The fan is centred, as specified. The G14 draws
    through vents toward the **rear** of its underside, so a centred grille
    may not sit under them. `fan_offset_y` shifts the fan and grille back in
    one override once the vent positions are measured.
-4. **Fan.** 120 × 15 assumed. Confirm the actual fan, since its thickness
+3. **Fan.** 120 × 15 assumed. Confirm the actual fan, since its thickness
    sets the pad's height directly.
-5. **Power.** A rear cable port is modelled as a plain 14 × 8 mm slot for a
+4. **Power.** A rear cable port is modelled as a plain 14 × 8 mm slot for a
    fan lead. If this should take a USB-C jack or an inline switch instead,
    the port needs resizing to the chosen part.
-6. **Seam.** The butt joint is not airtight. Minor for a low-pressure fan;
+5. **Seam.** The butt joint is not airtight. Minor for a low-pressure fan;
    a gasket groove can be added if the leak matters.
-7. **Stop ridges.** 4 mm proud. The right height depends on the hinge
+6. **Stop ridges.** 4 mm proud. The right height depends on the hinge
    angle, so revisit when the tilt is fixed.

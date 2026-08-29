@@ -3,9 +3,9 @@
 A parametric laptop cooling pad, written in [OpenSCAD](https://openscad.org/),
 version controlled, rendered to STL by CI on every push.
 
-Built for an **ASUS ROG Zephyrus G14**. A fan in the middle draws air in
-through the **left and right sides** and pushes it up through a grille into
-the laptop's underside. The floor, front and rear are solid — the rear is
+Built for an **ASUS ROG Zephyrus G14** (GA403, 2024 on). A fan in the
+middle draws air in through the **left and right sides** and pushes it up
+through a grille into the laptop's underside. The floor, front and rear are solid — the rear is
 reserved for the hinge. See **[SPEC.md](SPEC.md)** for the design and its
 open questions.
 
@@ -54,8 +54,8 @@ All dimensions are millimetres. The headline ones:
 
 | Variable | Default | Meaning |
 | -------- | ------- | ------- |
-| `length` | 312 | X, across the laptop (G14 footprint) |
-| `width`  | 227 | Y, front to back |
+| `length` | 311 | X, across the laptop (G14 GA403) |
+| `width`  | 220 | Y, front to back |
 | `height` | 28  | Z of the shell, **derived** — see below |
 | `fan_size` / `fan_thickness` | 120 / 15 | slim 120 mm fan |
 | `plenum_gap` | 7 | fan inlet clearance under the fan |
@@ -111,9 +111,9 @@ Notes on `-D`:
 
 ## Printing the test parts
 
-**At the G14 footprint neither half fits a 220 or 256 mm bed** — they need a
-350 mm-class printer. See SPEC.md §5 and open question 1; this is the one
-thing blocking a physical prototype.
+Each half is 311 × 220 in plan, so this needs a **350 mm-class bed** (Bambu
+H2D, Prusa XL). The parts are not split for printing — see SPEC.md §5 if
+that assumption turns out to be wrong.
 
 Both halves print open face up: the bottom as it comes out, the top rotated
 180° so its plate is on the bed. No supports. The louvers bridge over their

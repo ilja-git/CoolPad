@@ -38,10 +38,10 @@ pilot_m4  = printed ? 3.6  : 3.3;   // M4, fan screws
 // Envelope
 // ---------------------------------------------------------------------------
 
-// Sized to an ASUS ROG Zephyrus G14 (approx 312 x 227). Generations vary
-// between roughly 311-324 wide and 220-227 deep, so check yours.
-length   = 312;   // X, across the laptop
-width    = 227;   // Y, front to back
+// Sized to an ASUS ROG Zephyrus G14, GA403 generation (2024 on): the
+// laptop is approximately 311 x 220 x 16 mm.
+length   = 311;   // X, across the laptop
+width    = 220;   // Y, front to back
 height   = 28;    // Z, assembled. Derived in SPEC.md section 4.
 corner_r = 8;
 
