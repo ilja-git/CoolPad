@@ -1,0 +1,120 @@
+name: Render
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    # Optional one-off overrides. Leave blank to use the defaults baked
+    # into src/coolpad.scad.
+    inputs:
+      length:
+        description: "length (mm, X)"
+        required: false
+        default: ""
+      width:
+        description: "width (mm, Y)"
+        required: false
+        default: ""
+      height:
+        description: "height (mm, Z)"
+        required: false
+        default: ""
+
+env:
+  SCAD: src/coolpad.scad
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OpenSCAD
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openscad xvfb
+          openscad --version
+
+      - name: Collect -D overrides
+        id: params
+        env:
+          IN_LENGTH: ${{ inputs.length }}
+          IN_WIDTH: ${{ inputs.width }}
+          IN_HEIGHT: ${{ inputs.height }}
+        run: |
+          args=""
+          for name in length width height; do
+            var="IN_$(echo "$name" | tr '[:lower:]' '[:upper:]')"
+            value="${!var}"
+            if [ -z "$value" ]; then continue; fi
+            # Numbers only - these end up on a command line.
+            case "$value" in
+              ''|*[!0-9.]*) echo "::error::$name must be a number, got '$value'"; exit 1 ;;
+            esac
+            args="$args -D $name=$value"
+          done
+          echo "args=$args" >> "$GITHUB_OUTPUT"
+          echo "Overrides:${args:- (none, using file defaults)}"
+
+      - name: Render STL
+        env:
+          ARGS: ${{ steps.params.outputs.args }}
+        run: |
+          mkdir -p out
+          # shellcheck disable=SC2086  # $ARGS is deliberately word-split
+          xvfb-run -a openscad $ARGS -o out/coolpad.stl "$SCAD"
+
+      # iOS cannot preview an STL, so a PNG is how the result gets checked
+      # from a phone. --render forces a full CGAL render rather than the fast
+      # preview, so the image matches the geometry that was exported above.
+      - name: Render PNG preview
+        env:
+          ARGS: ${{ steps.params.outputs.args }}
+        run: |
+          # shellcheck disable=SC2086
+          xvfb-run -a openscad $ARGS \
+            --render \
+            --autocenter --viewall \
+            --imgsize=1600,1200 \
+            --colorscheme=Tomorrow \
+            -o out/preview.png "$SCAD"
+
+      # An --autocenter --viewall preview has no scale reference: a 168 mm pad
+      # and a 1680 mm pad look identical. Put the real bounding box in the run
+      # summary so the numbers are visible next to the image on a phone.
+      - name: Summarise
+        # Cosmetic only (and it assumes ASCII STL, which OpenSCAD writes by
+        # default) - never let it block the artifact upload.
+        continue-on-error: true
+        env:
+          ARGS: ${{ steps.params.outputs.args }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import os
+          pts = [tuple(map(float, l.split()[1:4]))
+                 for l in open("out/coolpad.stl")
+                 if l.strip().startswith("vertex")]
+          dims = [max(p[i] for p in pts) - min(p[i] for p in pts) for i in range(3)]
+          args = os.environ.get("ARGS", "").strip()
+          print("### CoolPad\n")
+          print("| axis | size (mm) |")
+          print("| ---- | --------- |")
+          for axis, d in zip("XYZ", dims):
+              print(f"| {axis} | {d:g} |")
+          print(f"\nOverrides: `{args}`" if args else "\nOverrides: none (file defaults)")
+          print("\nSTL and `preview.png` are in the artifact below.")
+          PY
+
+      - name: Check outputs
+        run: |
+          test -s out/coolpad.stl || { echo "::error::STL is empty or missing"; exit 1; }
+          test -s out/preview.png || { echo "::error::PNG is empty or missing"; exit 1; }
+          ls -lh out
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coolpad-${{ github.sha }}
+          path: out/
+          if-no-files-found: error
