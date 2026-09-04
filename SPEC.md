@@ -129,6 +129,7 @@ silently broken geometry.
 | `fan_screw_pitch` | 125 mm | ARCTIC's figure; the older 140 mm norm is 124.5 |
 | `fan_bore`   | 132 mm | frame opening, kept just inside the real one |
 | `fan_offset_y` | 0 | shifts the fan and grille toward the rear — see §8 |
+| `laptop_foot_band` | 20 mm | strip at the front and rear where the laptop's own feet land; **unmeasured** |
 | `slot_w` / `slot_pitch` | 6 / 9 mm | louvers |
 | `stop_l` / `stop_h` | 24 / 4 mm | front stop ridges |
 
@@ -176,6 +177,56 @@ Two consequences worth carrying forward:
 Its 1.31 mmH₂O static pressure is the number that makes the restriction in
 §3 tolerable: this is a pressure-optimised fan, not a free-air one.
 
+### How big a fan can this take?
+
+Two ceilings, and the lower one is not the pad:
+
+1. **The walls.** `width` 220 less two 3 mm walls leaves 214 mm.
+2. **The laptop's own feet.** They stand on the top plate, and a foot parked
+   on the grille blocks it and makes the laptop rock. At an assumed 20 mm
+   front and rear (`laptop_foot_band`, unmeasured — MEASUREMENTS.md C4) the
+   clear band is **180 mm**. The model now asserts the grille fits inside it.
+
+So 180 mm is the ceiling, and a 140 mm frame with its 132 mm bore sits well
+inside it. That leaves room on paper — but there is nothing to put in it:
+
+| Size | Slimmest current option | Pad height it forces |
+| ---- | ----------------------- | -------------------- |
+| 120 mm | 15 mm (ARCTIC P12 Slim) | 28 mm |
+| 140 mm | **15.5 mm** (SilverStone Air Slimmer 140) | 28.5 mm |
+| 180 mm | ~18 mm, but discontinued (SilverStone FM182) | 31 mm |
+| 180–200 mm | 20–30 mm, current stock | 33–43 mm |
+
+Above 140 mm the slim market simply stops. Going bigger means roughly
+doubling the pad's height, which defeats the point.
+
+There is a third ceiling that has not been measured and may bind before
+either of these: **the laptop's actual vent opening** (MEASUREMENTS.md B3).
+A grille larger than the vents it feeds buys nothing.
+
+### A better fan than the one specified
+
+The **SilverStone Air Slimmer 140 (SST-AS140B)** beats the P14 Slim on every
+axis that matters here:
+
+| | ARCTIC P14 Slim | SilverStone Air Slimmer 140 |
+| --- | --- | --- |
+| Size | 140 × 140 × 16 | 140 × 140 × **15.5** |
+| Airflow | 47 CFM | **82 CFM** |
+| Static pressure | 1.31 mmH₂O | **2.0 mmH₂O** |
+| Speed | 120–1800 rpm | 0–1700 rpm |
+| Power | 12 V, 4-pin PWM | 12 V, 4-pin PWM, 3.24 W |
+| Price | ~€10–13 | ~€20–30 |
+
+Static pressure is the number to weigh, not airflow: §3 says the intake is
+only 30% of the bore, so the fan spends its life pulling against a
+restriction. 2.0 mmH₂O against 1.31 is a 50% improvement exactly where the
+design is weakest. It is also 0.5 mm thinner, which the derived height picks
+up for free — the pad would become 28.5 mm.
+
+Switching is a three-line change (`fan_thickness = 15.5`, and the comment),
+so it is not worth doing until one is actually ordered.
+
 ## 7. Material
 
 Test parts are 3D printed; production parts are aluminium. The model carries
@@ -210,6 +261,9 @@ guessed at.
 
 ## 8. Open questions
 
+The measurements several of these wait on are collected in
+**[MEASUREMENTS.md](MEASUREMENTS.md)**.
+
 1. **Print bed** — assumed to take a 311 × 220 part. Worth confirming
    against the actual machine before committing to a test print, since
    nothing in the model is split.
@@ -217,6 +271,16 @@ guessed at.
    through vents toward the **rear** of its underside, so a centred grille
    may not sit under them. `fan_offset_y` shifts the fan and grille back in
    one override once the vent positions are measured.
+
+   **It has less room than you would think.** With a 132 mm bore in a 180 mm
+   clear band, the offset maxes out at **±24 mm** before the grille slides
+   under a foot — the model asserts it. If the vents turn out to be further
+   back than that, a single round grille cannot reach them, and the answer
+   is a smaller fan, an oval or offset grille, or accepting partial
+   coverage. Worth knowing before the measurement comes back rather than
+   after.
+
+   Measurements needed: **MEASUREMENTS.md** B1–B5.
 3. ~~**Fan.**~~ **Settled:** ARCTIC P14 Slim PWM PST, 140 × 140 × 16. The
    model is built around it and the height follows from it.
 4. **Power — now the sharp one.** The fan is **12 V**; USB is 5 V. Either
@@ -226,11 +290,15 @@ guessed at.
    USB-C receptacle and a trigger board, or the current bare 14 × 8 mm slot
    for a pass-through lead. Nothing else in the design blocks on it, but the
    port cannot be finalised until it is chosen.
-5. **The laptop's own feet.** Where the G14's rubber feet land on the top
-   plate is unmeasured. It matters twice: a foot sitting on the grille
-   blocks part of it, and the feet set the standoff gap through which the
-   pad's exhaust reaches the laptop's vents. Not published in any usable
-   form — measure the real machine.
+5. **The laptop's own feet.** Assumed at 20 mm front and rear
+   (`laptop_foot_band`) and asserted against, but not measured. It matters
+   twice: a foot on the grille blocks it, and the feet set the standoff gap
+   the exhaust must cross to reach the vents. Not published in any usable
+   form. Measurements needed: **MEASUREMENTS.md** C1–C4.
+
+   Also unrecorded until now: **recirculation.** The pad breathes through
+   its left and right walls. If the G14 exhausts hot air low on those same
+   sides, the pad drinks its own exhaust. MEASUREMENTS.md D1–D3.
 6. **Seam.** The butt joint is not airtight. Minor for a low-pressure fan;
    a gasket groove can be added if the leak matters.
 7. **Stop ridges.** 4 mm proud. The right height depends on the hinge

@@ -70,6 +70,13 @@ plenum_gap = 7;
 // shift the fan back with this rather than moving anything by hand.
 fan_offset_y = 0;
 
+// The laptop's own rubber feet stand on this pad's top plate, and the grille
+// has to live in the clear band between them - a foot parked on the grille
+// blocks it and makes the laptop rock. Roughly 20 mm at the front and the
+// rear, unmeasured: MEASUREMENTS.md C4 settles it. This is the real ceiling
+// on fan size, well before the walls are.
+laptop_foot_band = 20;
+
 // ---------------------------------------------------------------------------
 // Intake louvers
 // ---------------------------------------------------------------------------
@@ -168,6 +175,15 @@ assert(sqrt(2) * abs(joint_inset - foot_inset) > foot_d / 2 + screw_head_d / 2,
 assert(min([for (j = joint_points(), f = fan_points())
             norm([j[0] - f[0], j[1] - f[1]])]) > (boss_d + fan_boss_d) / 2,
        "joint bosses collide with fan bosses");
+
+// The grille must land between the laptop's feet, not under one.
+clear_band = width - 2 * laptop_foot_band;
+assert(fan_bore <= clear_band,
+       str("grille (", fan_bore, " mm) is wider than the clear band between ",
+           "the laptop's feet (", clear_band, " mm)"));
+assert(fan_cy - fan_bore / 2 >= laptop_foot_band
+       && fan_cy + fan_bore / 2 <= width - laptop_foot_band,
+       "fan_offset_y pushes the grille under one of the laptop's feet");
 
 // ---------------------------------------------------------------------------
 // Helpers
