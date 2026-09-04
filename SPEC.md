@@ -283,13 +283,52 @@ The measurements several of these wait on are collected in
    Measurements needed: **MEASUREMENTS.md** B1–B5.
 3. ~~**Fan.**~~ **Settled:** ARCTIC P14 Slim PWM PST, 140 × 140 × 16. The
    model is built around it and the height follows from it.
-4. **Power — now the sharp one.** The fan is **12 V**; USB is 5 V. Either
-   accept reduced speed on 5 V (a 12 V fan usually spins, slowly, and may
-   not start reliably), add a USB-C PD trigger board to pull 12 V, or use a
-   separate 12 V supply. This decides the cable port: a barrel jack, a
-   USB-C receptacle and a trigger board, or the current bare 14 × 8 mm slot
-   for a pass-through lead. Nothing else in the design blocks on it, but the
-   port cannot be finalised until it is chosen.
+4. **Power — now the sharp one.** The fan is **12 V**; USB is 5 V. This
+   decides the cable port: a barrel jack, a USB-C receptacle plus a
+   converter, or the current bare 14 × 8 mm slot for a pass-through lead.
+   Nothing else in the design blocks on it, but the port cannot be
+   finalised until it is chosen. See below for why 5 V is not the answer.
+
+### Why not just run it on 5 V
+
+It would spin. ARCTIC publishes start voltages of 3.9 V for the P12 PWM and
+3.3 V for the P12 Pro, so 5 V clears the threshold with margin, and these
+fans are widely reported to keep turning down to ~3 V once started. Starting
+is not the problem.
+
+The problem is the fan laws. Speed runs roughly with voltage, and:
+
+```
+airflow          ∝ rpm         5/12 →  ~40%
+static pressure  ∝ rpm²        5/12 →  ~17%
+```
+
+So 5 V costs 60% of the airflow and **83% of the static pressure**.
+
+That ratio is why this pad in particular cannot afford it. §3 puts the
+intake at 30% of the fan bore: this fan does not run in free air, it runs
+against a restriction, and pulling air through a restriction is exactly what
+static pressure buys. Losing five-sixths of it means the delivered airflow
+falls by considerably more than the 60% the first line suggests. A 5 V pad
+would not be a slower version of this design — it would be a different and
+much worse one.
+
+Three ways out, best first:
+
+1. **5 V → 12 V boost converter**, a few euro. Works from any USB source
+   with no negotiation at all, so it cannot be defeated by a charger that
+   does not implement the right PD profile. Most robust option, and the
+   cheapest.
+2. **USB-C PD trigger at 12 V.** Full performance when it works — but 12 V
+   is an *optional* PD voltage (the fixed steps are 5, 9, 15, 20 V), so it
+   is charger-dependent. Also unlikely to work off the laptop's own port,
+   which generally sources 5 V only.
+3. **PD trigger at 9 V.** Near-universally supported. ~75% speed and ~56%
+   pressure — a real compromise, but a defensible and quiet one.
+
+If the fan is ever run at 5 V for a test, leave the PWM pin **unconnected**.
+The P14 Slim stops below 9% duty, and a floating PWM line runs it flat out,
+which is what you want when the supply is already the limit.
 5. **The laptop's own feet.** Assumed at 20 mm front and rear
    (`laptop_foot_band`) and asserted against, but not measured. It matters
    twice: a foot on the grille blocks it, and the feet set the standoff gap
