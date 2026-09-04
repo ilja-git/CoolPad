@@ -1,6 +1,12 @@
 # CoolPad — specification
 
-Rev 0.4 — targeted at the GA403 G14, ARCTIC P14 Slim fan.
+Rev 0.5 — the pad becomes a chamber, not a plate.
+
+Rev 0.5 changes the concept, not just the numbers. The top surface is no
+longer a flat plate with a hole in it: the laptop is trapped between two
+locating rails, held clear of the plate, and the fan blows into the chamber
+that makes. Sections 3 and 6 carry the change. Much of it is deliberately
+**not modelled yet** — see [MEASUREMENTS.md](MEASUREMENTS.md).
 
 ## 1. Product
 
@@ -43,52 +49,109 @@ clearance, and asserts that the joint bosses clear the fan bosses.
 
 ## 3. Airflow
 
-```
-            laptop
-     ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
-     ═════╡ grille ╞═════        ← exhaust, up
-   →      │  fan   │      ←
-   →      └────────┘      ←      ← fan draws down-to-up
-   →       plenum          ←     ← intake, left and right walls only
-     ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-            desk (solid floor)
-```
-
-- **Intake: left and right walls only.** Louvered bands in those two walls,
-  split across both parts by the joint line.
-- **The floor is solid** — no bottom inlet.
-- **The front and rear walls are solid.** The rear is additionally reserved
-  for the hinge (§6) and carries the cable port.
-- **The fan is an axial fan, so it needs axial clearance beneath it.** This
-  is the driving dimension of the whole part: the fan cannot sit on the
-  floor or it would be throttled. `plenum_gap` (default 7 mm) is that
-  clearance, and it sets the height budget in §4.
-
-### The intake is the restriction
-
-Confining intake to two walls costs about a third of the available open
-area. To claw some back, the louvers were opened up from 4.5 mm slots to
-**6 mm slots on a 9 mm pitch** (a 3 mm land between slots).
-
-The model computes and echoes the result on every render, and CI prints it
-in the run summary:
+Seen from the front, across the pad:
 
 ```
-intake free area = 4139 mm2 = 30% of the fan bore
+              laptop underside
+       ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+   ←   ░░░░ chamber under laptop ░░░░   →   air leaves sideways
+       ═════════╡ grille ╞═════════
+                │   fan  │
+   →            └────────┘            ←
+   →             plenum               ←   intake: sides OPEN
+       ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+                  desk
 ```
 
-**The move to a 140 mm fan made this worse, not better.** The louvers gained
-a little area (the pad is 1 mm taller, so the bands are), but the fan's bore
-grew from 113 to 132 mm, and the ratio fell from 39% to 30%. The fan can now
-move more air than the walls can feed it, so the louvers, not the grille, are
-firmly the limit. It is the first thing to attack if the pad underperforms.
-The levers, in order of cheapness: widen the slots further, deepen the
-louvered bands, or reopen the front wall. Reopening the front is the big one,
-and it is off the table by spec, not by accident.
+Seen from the side, front to rear — this is the part that is new:
+
+```
+   front                                                   rear
+     ┌────┐                                      ┌────┐
+     │rail│      chamber over the grille         │rail│   ← pad's rails
+   ══╧════╧══════════════════════════════════════╧════╧══  top plate
+   ░░░░░░░░  open side intake  ░░░░░░░░░│ SOLID BLOCK │   side wall
+   ═══════════════════════════════════════════════════════
+     ▲                                              ▲
+     laptop's front foot                laptop's rear foot
+                                                    ▲
+                                    laptop's hot air comes down here
+```
+
+- **Intake: left and right walls, open.** Not louvers. Large apertures with
+  the minimum posts a 3 mm wall needs. Louvers cost about a third of the free
+  area and bought nothing this design wants.
+- **The rear of each side wall is solid** (`intake_rear_block`). The laptop
+  dumps hot air off its back edge; without this block the pad inhales its own
+  exhaust. This costs intake area on purpose.
+- **The floor is solid.** No bottom inlet.
+- **The front wall is solid.** So is the rear — reserved for the hinge (§6)
+  and for getting the laptop's hot air away (§6.1).
+- **The fan needs axial clearance beneath it.** It cannot sit on the floor or
+  it is throttled. `plenum_gap` (7 mm) is that clearance and it sets §4.
+
+### The chamber, and why it is open at the sides
+
+The laptop does not lie on the top plate. Two rails run left-to-right just
+inboard of its own rubber feet, and it sits between them:
+
+```
+LAPTOP FOOT │ RAIL │  open chamber, fan below  │ RAIL │ LAPTOP FOOT
+```
+
+The rails do three jobs at once:
+
+1. **Locate.** The laptop's feet butt against their outer faces, so it cannot
+   slide — in both directions, which the old front-only stop ridges could not
+   manage.
+2. **Lift.** They hold the laptop off the plate, and that gap is the chamber.
+3. **Separate.** They divide cool supply from the hot region at the rear.
+
+The chamber is **deliberately open at the left and right**. The fan can then
+never pressurise it: surplus air spills out of the sides. The alternative —
+a sealed chamber — would stall the fan the moment the laptop's vents could
+not swallow everything it delivered.
+
+That escaping air is somewhat warmed by the laptop's underside, and some of
+it will find its way back to the intake. **This is accepted and not solved.**
+The recirculation actually worth blocking is the hot exhaust off the back
+edge, which is what `intake_rear_block` is for.
+
+### The intake is still the restriction
+
+The model computes and echoes the free area on every render, and CI prints
+it in the run summary:
+
+```
+intake free area = 5124 mm2 = 37% of the fan bore, in 8 apertures
+```
+
+The history is worth keeping, because it shows what each decision cost:
+
+| | Free area | % of bore |
+| --- | --- | --- |
+| Louvers, 120 mm fan | 3887 mm² | 39% |
+| Louvers, 140 mm fan | 4139 mm² | 30% |
+| **Open sides, 140 mm fan, rear blocked** | **5124 mm²** | **37%** |
+
+Going to a 140 mm fan cost nine points, because the bore grew from 113 to
+132 mm while the louvers barely moved. Opening the sides won seven of them
+back — **and it did that while also giving up 45 mm of each side wall** to
+`intake_rear_block`. Without the block it would be past 45%.
+
+That trade is worth stating plainly, because it is the one real decision in
+this section: **blocking the rear costs roughly eight points of intake area
+and is still worth it.** Feeding the fan hot air it has already used is a
+worse failure than feeding it slightly less air.
+
+37% remains a genuine restriction. The remaining levers, cheapest first:
+deepen the bands by cutting `band_margin`, shorten `intake_rear_block` once
+D1–D3 say how much is actually needed, or reopen the front wall — which is
+off the table by spec, not by accident.
 
 The same applies under the fan: at `plenum_gap` 7 mm the annulus feeding the
-fan's inlet is about 2900 mm², so it is of the same order as the louvers.
-Raising the gap costs height 1 mm for 1 mm.
+fan's inlet is about 2900 mm², so it is now the *smaller* of the two and may
+have become the binding one. Raising the gap costs height 1 mm for 1 mm.
 
 ## 4. Height budget
 
@@ -130,13 +193,17 @@ silently broken geometry.
 | `fan_bore`   | 132 mm | frame opening, kept just inside the real one |
 | `fan_offset_y` | 0 | shifts the fan and grille toward the rear — see §8 |
 | `laptop_foot_band` | 20 mm | strip at the front and rear where the laptop's own feet land; **unmeasured** |
-| `slot_w` / `slot_pitch` | 6 / 9 mm | louvers |
-| `stop_l` / `stop_h` | 24 / 4 mm | front stop ridges |
+| `aperture_max` / `post_w` | 45 / 6 mm | side openings and the posts between |
+| `intake_front` | 14 mm | solid wall kept at the front corner |
+| `intake_rear_block` | 45 mm | solid rear wall, anti-recirculation; **a guess** |
+| `laptop_foot_band` | 20 mm | where the laptop's feet land; **unmeasured** |
+| `rail_h` / `rail_w` | 5 / 6 mm | locating rails; `rail_h` **must** exceed the laptop's foot height |
+| `base_round` | 3 mm | rolled bottom edge, for handling |
 
 `height` is the **shell** height. The top part's bounding box is larger in
-both directions: its screw bosses hang down to 1.5 mm and its stop ridges
-stand 4 mm proud of the plate. The CI run summary prints measured bounding
-boxes, so expect **14.5** for the tray and **31.5** for the lid.
+both directions: its screw bosses hang down to 1.5 mm and its rails stand
+5 mm proud of the plate. The CI run summary prints measured bounding boxes,
+so expect **14.5** for the tray and **32.5** for the lid.
 
 ### Print size
 
@@ -156,8 +223,68 @@ louvers and no other features except the cable port; it is left as clear
 material for hinge bosses.
 
 Consequence of the future tilt, handled now: a tilted pad lets the laptop
-slide toward the user, so the top plate carries two **stop ridges** along
-the front edge.
+slide toward the user. Rev 0.4 handled that with two stop ridges along the
+front edge. Rev 0.5 does it better with the locating rails of §3, which
+catch the laptop in both directions and do two other jobs besides. The stop
+ridges are gone.
+
+**The hinge and the rear exhaust now want the same wall.** §6.1 needs the
+rear open; the hinge wants it solid. Whichever is designed first constrains
+the other, and the exhaust is the one that affects whether the pad works.
+
+## 6.1 Rear exhaust and lap use — specified, not modelled
+
+The laptop vents hot air downward off its back edge, inboard of its rear
+foot. That air lands in the pad's rear region, and if nothing is done with
+it, it sits there and gets drawn back in.
+
+The intent:
+
+- **Take the hot air rearward and slightly upward**, out of the back of the
+  pad, so it leaves over the top of whatever is behind rather than pooling.
+- **Roll and angle the rear underside upward** at the trailing edge. Two
+  reasons, both real: it is more comfortable against the legs when the pad
+  is used on a lap, and it aims the hot air away from them rather than down
+  onto them.
+- **Keep it separated from the intake** the whole way. `intake_rear_block`
+  is the first half of that; a physical divider between the rear region and
+  the plenum is the second, and is not modelled.
+
+**None of this is in the model**, because every dimension it needs is
+unmeasured: where the laptop's vents actually are, how far inboard of the
+rear foot, and how much clearance the rear foot leaves. MEASUREMENTS.md
+C2, C3 and D1–D3 are exactly the numbers this waits on.
+
+What *is* in the model is `base_round`, which rolls the whole bottom edge by
+3 mm. That covers the handling half of the requirement. The angled rear ramp
+is the part still to come.
+
+### Powering it, and the parts to buy
+
+The chain is: **laptop USB-C port → angled cable → 5 V-to-12 V step-up →
+4-pin fan**. The cable is not built into the shell; it comes out through a
+side opening and can be run out of either side.
+
+**Buy a cable with a step-up ("boost") circuit in it.** The trap is that
+plenty of USB-C-to-fan cables are dumb passthrough and deliver 5 V, which
+§8's analysis rules out. The listing has to say *12 V step-up*, *boost*, or
+*12 V output*. Ready-made USB-to-4-pin 12 V step-up cables run about €7–10.
+
+Two things to check before ordering:
+
+- **Current rating.** Some of these boost cables are rated 0.4 A at 12 V,
+  i.e. 4.8 W. The P14 Slim is well inside that; the Air Slimmer 140 draws
+  3.24 W, which is inside it but not by much. Anything with a headline
+  "dual fan" rating has more room.
+- **There is no motherboard here, so nothing generates a PWM signal.** With
+  the PWM pin unconnected the fan runs flat out, which will be louder than
+  wanted. Either buy a boost cable with an **inline speed dial** — they
+  exist and are the cheapest fix — or add a small PWM generator module.
+  This is a genuine requirement, not a nicety, and it is easy to forget
+  until the pad is assembled and screaming.
+
+A right-angle USB-C **adapter or cable** at the laptop end is a €5 part and
+a better answer than trying to fit an angled connector inside a 29 mm shell.
 
 ### The fan
 
@@ -272,13 +399,14 @@ The measurements several of these wait on are collected in
    may not sit under them. `fan_offset_y` shifts the fan and grille back in
    one override once the vent positions are measured.
 
-   **It has less room than you would think.** With a 132 mm bore in a 180 mm
-   clear band, the offset maxes out at **±24 mm** before the grille slides
-   under a foot — the model asserts it. If the vents turn out to be further
-   back than that, a single round grille cannot reach them, and the answer
-   is a smaller fan, an oval or offset grille, or accepting partial
-   coverage. Worth knowing before the measurement comes back rather than
-   after.
+   **It has less room than you would think, and rev 0.5 tightened it.** The
+   grille must now clear the locating rails, not just the laptop's feet, so
+   the offset maxes out at **±18 mm** — down from ±24. The model asserts it:
+   `fan_offset_y=18` renders, `19` fails. If the vents turn out to sit
+   further back than 18 mm off centre, a single round grille cannot reach
+   them, and the answer is a smaller fan, a non-circular grille, or
+   accepting partial coverage. Worth knowing before the measurement comes
+   back rather than after.
 
    Measurements needed: **MEASUREMENTS.md** B1–B5.
 3. ~~**Fan.**~~ **Settled:** ARCTIC P14 Slim PWM PST, 140 × 140 × 16. The

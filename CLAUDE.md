@@ -47,8 +47,11 @@ in preview is not verified.
   boss-clearance asserts.
 - The fan is a real, chosen part: **ARCTIC P14 Slim PWM PST**, 140 × 140 × 16,
   125 mm pitch, 12 V. Don't treat those numbers as placeholders.
-- Section cut boxes must clear the stop ridges, or their tops survive as
+- Section cut boxes must clear the locating rails, or their tops survive as
   detached slivers that look fine in a render.
+- Almost everything on the top surface is positioned from `laptop_foot_band`,
+  which is a **guess** until MEASUREMENTS.md C1–C4 come back. Treat numbers
+  derived from it as provisional, and never hard-code one.
 
 ## Output has to work on a phone
 

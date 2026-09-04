@@ -1,8 +1,10 @@
 // CoolPad - parametric laptop cooling pad
 //
-// Two-part shell (top + bottom) with a fan in the middle. Air enters
-// through louvers in the side walls, crosses the plenum, and is pushed up
-// through the top grille into the laptop. See SPEC.md.
+// Two-part shell (top + bottom) with a fan in the middle. Air enters through
+// open apertures in the side walls, crosses the plenum, and is pushed up
+// through the top grille into the chamber under the laptop. That chamber is
+// bounded front and rear by locating rails and open at the left and right,
+// so it cannot pressurise. See SPEC.md.
 //
 // All dimensions in millimetres. Every variable below is top level, so it
 // can be overridden from the command line:
@@ -51,6 +53,10 @@ wall    = 3;
 floor_t = 3;
 top_t   = 3;
 
+// The bottom edge is rolled over so the pad is pleasant to pick up and to
+// rest on a lap. Purely ergonomic; nothing depends on it.
+base_round = 3;
+
 // ---------------------------------------------------------------------------
 // Fan: ARCTIC P14 Slim PWM PST, 140 x 140 x 16, 4-pin PWM, 12 V
 // ---------------------------------------------------------------------------
@@ -67,30 +73,51 @@ plenum_gap = 7;
 
 // The fan is centred, as specified. The G14 draws through vents toward the
 // rear of its underside, so if the grille should line up with those instead,
-// shift the fan back with this rather than moving anything by hand.
+// shift the fan back with this rather than moving anything by hand. The
+// locating rails bound how far it can go - the model asserts it.
 fan_offset_y = 0;
 
-// The laptop's own rubber feet stand on this pad's top plate, and the grille
-// has to live in the clear band between them - a foot parked on the grille
-// blocks it and makes the laptop rock. Roughly 20 mm at the front and the
-// rear, unmeasured: MEASUREMENTS.md C4 settles it. This is the real ceiling
-// on fan size, well before the walls are.
+// ---------------------------------------------------------------------------
+// The laptop's feet, and the rails that trap it
+// ---------------------------------------------------------------------------
+
+// Strip at the front and rear of the top plate where the laptop's own rubber
+// feet land. UNMEASURED - 20 mm is a working guess, MEASUREMENTS.md C1-C4
+// settles it. Nearly everything on the top surface is positioned from it.
 laptop_foot_band = 20;
 
+// Rails running left to right, just inboard of the laptop's feet. The laptop
+// sits between them and its feet butt against their outer faces, so it
+// cannot slide - which is what the old front stop ridges did, less well and
+// in one direction only. The rails also hold the laptop off the top plate,
+// and that gap is how the exhaust escapes sideways instead of pressurising.
+//
+// rail_h must exceed the laptop's foot height or the laptop rests on its own
+// feet and the rails locate nothing. That height is MEASUREMENTS.md C3.
+rail_h       = 5;
+rail_w       = 6;
+rail_x_inset = 16;
+
 // ---------------------------------------------------------------------------
-// Intake louvers
+// Side intake - open, not louvered
 // ---------------------------------------------------------------------------
 
-// Dropping the front wall from the intake costs a third of the open area,
-// so the remaining louvers are opened up to claw some of it back: a 6 mm
-// slot on a 9 mm pitch leaves a 3 mm land between slots.
-slot_w      = 6;
-slot_pitch  = 9;
-slot_inset  = 6;    // extra clearance past the corner radius
-band_margin = 1;    // solid material kept above and below each band
+// The sides are open. Louvers cost roughly a third of the free area and buy
+// nothing this design needs, so what remains is the least structure that
+// keeps a 3 mm wall from flexing: a few large apertures with posts between.
+aperture_max = 45;   // widest an aperture gets before another post is added
+post_w       = 6;    // material left between apertures
+intake_front = 14;   // solid material kept at the front corner
+band_margin  = 1;    // solid material kept above and below each band
+
+// Solid section at the REAR of each side wall. The laptop dumps hot air off
+// its back edge, and without this the pad inhales its own exhaust straight
+// back through the side intake. The length is a guess until MEASUREMENTS.md
+// D1-D3 land, and it is the single cheapest thing to retune afterwards.
+intake_rear_block = 45;
 
 // ---------------------------------------------------------------------------
-// Joint, grille, cable port, feet
+// Joint, grille, feet
 // ---------------------------------------------------------------------------
 
 boss_d      = 8;      // top-part screw bosses
@@ -102,14 +129,6 @@ grille_bar  = 2.5;
 grille_gap  = 7;
 grille_hub  = 20;
 grille_arms = 4;      // bars through the centre; 4 bars = 8 arms
-
-cable_w = 14;         // rear cable port, straddles the joint
-cable_h = 8;
-
-// Ridges along the front edge. The production part tilts on a hinge, which
-// lets the laptop slide toward the user; these stop it.
-stop_l = 24;
-stop_h = 4;
 
 foot_d = 16;          // recesses for stick-on rubber feet
 foot_t = 1;
@@ -144,16 +163,30 @@ fan_cy     = cy + fan_offset_y;   // fan/grille centre
 lo_band = [floor_t + band_margin, split_z - band_margin];
 hi_band = [split_z + band_margin, height - top_t - band_margin];
 
-// Free area of the louvers, against the fan's bore. The intake is the
+// Inner faces of the locating rails: the clear span the grille must fit in.
+rail_front = laptop_foot_band + rail_w;
+rail_rear  = width - laptop_foot_band - rail_w;
+
+// Aperture layout. One row per half, split by the joint line.
+intake_y0   = intake_front;
+intake_y1   = width - intake_rear_block;
+intake_span = intake_y1 - intake_y0;
+n_aper      = max(1, ceil(intake_span / (aperture_max + post_w)));
+aper_w      = (intake_span - (n_aper - 1) * post_w) / n_aper;
+
+function aperture_positions() =
+    [for (i = [0 : n_aper - 1]) intake_y0 + i * (aper_w + post_w)];
+
+// Free area of the intake, against the fan's bore. The intake is the
 // restriction in this design, so this number is worth watching.
-function slot_area(h) = (h - slot_w) * slot_w + PI * pow(slot_w / 2, 2);
-intake_area = 2 * len(slot_positions(width))
-              * (slot_area(lo_band[1] - lo_band[0])
-                 + slot_area(hi_band[1] - hi_band[0]));
+function stadium_area(w, h) = max(w - h, 0) * h + PI * pow(h / 2, 2);
+intake_area = 2 * n_aper * (stadium_area(aper_w, lo_band[1] - lo_band[0])
+                            + stadium_area(aper_w, hi_band[1] - hi_band[0]));
 bore_area   = PI * pow(fan_bore / 2, 2);
 
 echo(str("intake free area = ", round(intake_area), " mm2 = ",
-         round(100 * intake_area / bore_area), "% of the fan bore"));
+         round(100 * intake_area / bore_area), "% of the fan bore, in ",
+         2 * n_aper, " apertures"));
 
 assert(height >= min_height,
        str("height=", height, " is too small: floor_t + plenum_gap + ",
@@ -176,14 +209,24 @@ assert(min([for (j = joint_points(), f = fan_points())
             norm([j[0] - f[0], j[1] - f[1]])]) > (boss_d + fan_boss_d) / 2,
        "joint bosses collide with fan bosses");
 
-// The grille must land between the laptop's feet, not under one.
-clear_band = width - 2 * laptop_foot_band;
-assert(fan_bore <= clear_band,
-       str("grille (", fan_bore, " mm) is wider than the clear band between ",
-           "the laptop's feet (", clear_band, " mm)"));
-assert(fan_cy - fan_bore / 2 >= laptop_foot_band
-       && fan_cy + fan_bore / 2 <= width - laptop_foot_band,
-       "fan_offset_y pushes the grille under one of the laptop's feet");
+// The grille has to sit between the rails, not under one of them - and by
+// extension not under a laptop foot. This is the tightest constraint on
+// fan_offset_y by a long way.
+assert(fan_bore <= rail_rear - rail_front,
+       str("grille (", fan_bore, " mm) will not fit between the rails (",
+           rail_rear - rail_front, " mm)"));
+assert(fan_cy - fan_bore / 2 >= rail_front
+       && fan_cy + fan_bore / 2 <= rail_rear,
+       "fan_offset_y pushes the grille under a locating rail");
+
+// A rail lower than the laptop's own feet locates nothing.
+assert(rail_h > rail_w / 2, "rail_h too small for its rounded top");
+
+// The apertures must stay openings rather than collapsing back into
+// slots, which is what the louvers were and what this replaced.
+assert(intake_span > 0 && aper_w >= lo_band[1] - lo_band[0],
+       str("side openings have collapsed to ", aper_w, " mm slots: ",
+           "intake_front + intake_rear_block leave too little wall"));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -195,6 +238,23 @@ module rrect(l, w, r, h) {
         translate([x, y, 0]) cylinder(r = r, h = h);
 }
 
+// The same, with the bottom edge rolled over by f. The solid stays convex,
+// so a single hull() through the profile is exact rather than an
+// approximation, and it costs one CGAL union instead of a minkowski.
+module rrect_round_base(l, w, r, h, f) {
+    steps = 6;
+    hull() {
+        translate([0, 0, f]) rrect(l, w, r, h - f);
+        for (i = [0 : steps]) {
+            a  = i * 90 / steps;
+            di = f - f * sin(a);      // f -> 0
+            dz = f - f * cos(a);      // 0 -> f
+            translate([di, di, dz])
+                rrect(l - 2 * di, w - 2 * di, max(r - di, 0.5), 0.01);
+        }
+    }
+}
+
 module annulus(ro, ri, h) {
     difference() {
         cylinder(r = ro, h = h);
@@ -202,34 +262,24 @@ module annulus(ro, ri, h) {
     }
 }
 
-// Stadium-shaped slot: starts at the origin, extends +Y by d.
-module slot(w, h, d) {
-    hull() for (z = [-1, 1] * max(h - w, 0) / 2)
-        translate([0, 0, z]) rotate([-90, 0, 0]) cylinder(d = w, h = d);
+// Horizontal stadium, centred on the origin in Y and Z, extruded +X by d.
+// Rounded ends so an opening this large is not a stress riser in a 3 mm wall.
+module aperture(w, h, d) {
+    hull() for (y = [-1, 1] * max(w - h, 0) / 2)
+        translate([0, y, 0]) rotate([0, 90, 0]) cylinder(d = h, h = d);
 }
 
-// Evenly spaced slot centres along a wall of length len.
-function slot_positions(len) =
-    let (m    = corner_r + slot_inset,
-         span = len - 2 * m,
-         n    = max(1, floor(span / slot_pitch)),
-         used = n * slot_pitch,
-         x0   = (len - used) / 2 + slot_pitch / 2)
-    [for (i = [0 : n - 1]) x0 + i * slot_pitch];
-
-// Louvered band in the left and right walls, between z0 and z1.
-//
-// Left and right only: those are the "sides". The front and rear walls are
-// solid - the rear additionally reserved for the hinge.
-module intake_band(z0, z1) {
+// One row of intake apertures through the left and right walls, between z0
+// and z1. Left and right only: the front wall is solid, and so is the rear,
+// which is reserved for the hinge and for getting the laptop's hot air away.
+module intake_openings(z0, z1) {
     h  = z1 - z0;
     zc = (z0 + z1) / 2;
-
-    for (y = slot_positions(width))             // left, x = 0
-        translate([-1, y, zc]) rotate([0, 0, -90]) slot(slot_w, h, wall + 2);
-
-    for (y = slot_positions(width))             // right, x = length
-        translate([length + 1, y, zc]) rotate([0, 0, 90]) slot(slot_w, h, wall + 2);
+    for (y = aperture_positions()) {
+        yc = y + aper_w / 2;
+        translate([-1, yc, zc])              aperture(aper_w, h, wall + 2);
+        translate([length - wall - 1, yc, zc]) aperture(aper_w, h, wall + 2);
+    }
 }
 
 // Joint screw positions, inboard of the feet.
@@ -246,12 +296,6 @@ function fan_points() =
     [for (dx = [-1, 1], dy = [-1, 1])
         [cx + dx * fan_screw_pitch / 2, fan_cy + dy * fan_screw_pitch / 2]];
 
-// Rear cable port, centred on the joint so each half carries a notch.
-module cable_port() {
-    translate([cx - cable_w / 2, width - wall - 1, split_z - cable_h / 2])
-        cube([cable_w, wall + 2, cable_h]);
-}
-
 // ---------------------------------------------------------------------------
 // Bottom: tray, solid floor, fan mounting, side intake
 // ---------------------------------------------------------------------------
@@ -260,15 +304,14 @@ module bottom() {
     difference() {
         union() {
             difference() {
-                rrect(length, width, corner_r, split_z);
+                rrect_round_base(length, width, corner_r, split_z, base_round);
 
                 // cavity, open at the top
                 translate([wall, wall, floor_t])
                     rrect(length - 2 * wall, width - 2 * wall,
                           max(corner_r - wall, 0.5), split_z);
 
-                intake_band(lo_band[0], lo_band[1]);
-                cable_port();
+                intake_openings(lo_band[0], lo_band[1]);
             }
 
             // fan bosses, floor up to the underside of the fan
@@ -301,7 +344,7 @@ module bottom() {
 }
 
 // ---------------------------------------------------------------------------
-// Top: lid, exhaust grille, laptop stops, side intake
+// Top: lid, exhaust grille, locating rails, side intake
 // ---------------------------------------------------------------------------
 
 // The bars that stay: centre hub, concentric rings, radial arms.
@@ -332,16 +375,19 @@ module grille_openings() {
     }
 }
 
-module laptop_stops() {
-    for (x = [length * 0.3, length * 0.7])
-        translate([x, wall + 4, height])
-            intersection() {
-                hull() for (dx = [-1, 1] * stop_l / 2)
-                    translate([dx, 0, 0]) sphere(r = stop_h);
-                // keep 1 mm buried in the plate so the union overlaps
-                translate([-stop_l, -stop_h, -1])
-                    cube([2 * stop_l, 2 * stop_h, stop_h + 1]);
-            }
+// Two rails, one just inboard of each of the laptop's foot strips. Rounded
+// on top, drafted at the sides, and buried 1 mm in the plate so the union
+// overlaps rather than sitting tangent to it.
+module locating_rails() {
+    x0    = rail_x_inset;
+    len_x = length - 2 * rail_x_inset;
+    for (y0 = [laptop_foot_band, rail_rear])
+        hull() {
+            translate([x0, y0 + rail_w / 2, height + rail_h - rail_w / 2])
+                rotate([0, 90, 0]) cylinder(d = rail_w, h = len_x);
+            translate([x0, y0, height - 1])
+                cube([len_x, rail_w, 0.01]);
+        }
 }
 
 module top_part() {
@@ -364,14 +410,13 @@ module top_part() {
                 translate([p[0], p[1], floor_t - boss_socket])
                     cylinder(d = boss_d, h = height - floor_t + boss_socket);
 
-            laptop_stops();
+            locating_rails();
         }
 
         // exhaust grille
         translate([cx, fan_cy, plate_z]) grille_openings();
 
-        intake_band(hi_band[0], hi_band[1]);
-        cable_port();
+        intake_openings(hi_band[0], hi_band[1]);
 
         for (p = joint_points())
             translate([p[0], p[1], floor_t - boss_socket - 1])
@@ -427,9 +472,9 @@ if (section) {
     difference() {
         model();
         translate([-1, -1, -1])
-            // must clear the stop ridges too, or their tops survive the cut
-            // as detached slivers
-            cube([length + 2, cy + 1, height + explode + stop_h + 3]);
+            // must clear the rails too, or their tops survive the cut as
+            // detached slivers
+            cube([length + 2, cy + 1, height + explode + rail_h + 3]);
     }
 } else {
     model();

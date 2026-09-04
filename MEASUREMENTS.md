@@ -81,9 +81,13 @@ pin that down.
 | C3 | For each: length × width, and **height above the case** | standoff gap | ±0.5 mm | |
 | C4 | Clear distance between front and rear feet | max fan size | ±2 mm | |
 
-C3's height is the one worth calipers. It decides whether the exhaust
-actually reaches the vents or spills sideways, and it is small enough that
-a photo will not resolve it well.
+C3's height is the one worth calipers, and it now has a second job. The
+pad's locating rails have to stand **taller than the laptop's feet** or the
+laptop rests on its own feet and the rails locate nothing. `rail_h` is set
+to 5 mm on a guess; C3 is the number that confirms or breaks it.
+
+It also decides whether the exhaust reaches the vents or spills sideways,
+and it is small enough that a photo will not resolve it well.
 
 ## D. Exhaust vents — recirculation check
 

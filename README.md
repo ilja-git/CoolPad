@@ -3,11 +3,15 @@
 A parametric laptop cooling pad, written in [OpenSCAD](https://openscad.org/),
 version controlled, rendered to STL by CI on every push.
 
-Built for an **ASUS ROG Zephyrus G14** (GA403, 2024 on). A fan in the
-middle draws air in through the **left and right sides** and pushes it up
-through a grille into the laptop's underside. The floor, front and rear are solid — the rear is
-reserved for the hinge. See **[SPEC.md](SPEC.md)** for the design and its
-open questions.
+Built for an **ASUS ROG Zephyrus G14** (GA403, 2024 on). A fan in the middle
+draws air in through the **open left and right sides** and pushes it up
+through a grille into a chamber under the laptop. The laptop is trapped
+between two locating rails and held clear of the top plate, so the chamber
+vents sideways and cannot pressurise. The floor and front are solid; so is
+the rear, and the rear of each side wall, so the pad does not inhale the
+laptop's own exhaust. See **[SPEC.md](SPEC.md)** for the design and its open
+questions, and **[MEASUREMENTS.md](MEASUREMENTS.md)** for what it is waiting
+on.
 
 ```
 SPEC.md                       what the part is and why
@@ -85,7 +89,11 @@ All dimensions are millimetres. The headline ones:
 | `height` | 29  | Z of the shell, **computed** — see below |
 | `fan_size` / `fan_thickness` | 140 / 16 | ARCTIC P14 Slim PWM PST |
 | `plenum_gap` | 7 | fan inlet clearance under the fan |
-| `fan_offset_y` | 0 | shifts the fan/grille toward the rear |
+| `fan_offset_y` | 0 | shifts the fan/grille toward the rear; **±18 mm max** |
+| `laptop_foot_band` | 20 | where the laptop's own feet land — **unmeasured** |
+| `rail_h` / `rail_w` | 5 / 6 | locating rails on the top surface |
+| `intake_rear_block` | 45 | solid rear side-wall, so hot air is not re-inhaled |
+| `base_round` | 3 | rolled bottom edge, for handling |
 | `material` | `"printed"` | or `"aluminium"`: changes fits and hole sizes |
 
 `height` is not a free choice, and not a variable you set: the model computes
@@ -206,9 +214,10 @@ H2D, Prusa XL). The parts are not split for printing — see SPEC.md §5 if
 that assumption turns out to be wrong.
 
 Both halves print open face up: the bottom as it comes out, the top rotated
-180° so its plate is on the bed. No supports. The louvers bridge over their
-short dimension.
+180° so its plate is on the bed. No supports. The side apertures bridge over
+their short dimension, and the locating rails print as shallow domes with
+the plate on the bed.
 
 The parts are joined with four M3 screws driven **from underneath**, so no
-screw heads break the surface the laptop sits on. The rubber feet go in the
-four corner recesses, clear of the screws.
+screw heads break the surface the laptop sits on. The pad's own rubber feet
+go in the four corner recesses, clear of the screws.
