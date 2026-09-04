@@ -192,11 +192,12 @@ silently broken geometry.
 | `fan_screw_pitch` | 125 mm | ARCTIC's figure; the older 140 mm norm is 124.5 |
 | `fan_bore`   | 132 mm | frame opening, kept just inside the real one |
 | `fan_offset_y` | 0 | shifts the fan and grille toward the rear — see §8 |
-| `laptop_foot_band` | 20 mm | strip at the front and rear where the laptop's own feet land; **unmeasured** |
+| `foot_gap_rear` | 14.14 mm | rear edge → the rear foot strip; **measured** |
+| `foot_clear_span` | 166.0 mm | clear band between the foot strips; **measured** |
+| `foot_w_front` / `foot_w_rear` | 7.8 mm | foot strip width; the rear one is **assumed** |
 | `aperture_max` / `post_w` | 45 / 6 mm | side openings and the posts between |
 | `intake_front` | 14 mm | solid wall kept at the front corner |
 | `intake_rear_block` | 45 mm | solid rear wall, anti-recirculation; **a guess** |
-| `laptop_foot_band` | 20 mm | where the laptop's feet land; **unmeasured** |
 | `rail_h` / `rail_w` | 5 / 6 mm | locating rails; `rail_h` **must** exceed the laptop's foot height |
 | `base_round` | 3 mm | rolled bottom edge, for handling |
 
@@ -332,12 +333,14 @@ Two ceilings, and the lower one is not the pad:
 
 1. **The walls.** `width` 220 less two 3 mm walls leaves 214 mm.
 2. **The laptop's own feet.** They stand on the top plate, and a foot parked
-   on the grille blocks it and makes the laptop rock. At an assumed 20 mm
-   front and rear (`laptop_foot_band`, unmeasured — MEASUREMENTS.md C4) the
-   clear band is **180 mm**. The model now asserts the grille fits inside it.
+   on the grille blocks it and makes the laptop rock. **Measured 2026-09-04**:
+   the clear band between the two foot strips is **166 mm**, not the 180 mm
+   assumed, and it sits about 5 mm rearward of centre. The model asserts the
+   grille fits inside it.
 
-So 180 mm is the ceiling, and a 140 mm frame with its 132 mm bore sits well
-inside it. That leaves room on paper — but there is nothing to put in it:
+So 166 mm is the ceiling, and a 140 mm frame with its 132 mm bore still sits
+inside it, though with less to spare than the guess suggested. That leaves
+room on paper — but there is nothing to put in it:
 
 | Size | Slimmest current option | Pad height it forces |
 | ---- | ----------------------- | -------------------- |
@@ -421,10 +424,12 @@ The measurements several of these wait on are collected in
    may not sit under them. `fan_offset_y` shifts the fan and grille back in
    one override once the vent positions are measured.
 
-   **It has less room than you would think, and rev 0.5 tightened it.** The
-   grille must now clear the locating rails, not just the laptop's feet, so
-   the offset maxes out at **±18 mm** — down from ±24. The model asserts it:
-   `fan_offset_y=18` renders, `19` fails. If the vents turn out to sit
+   **It has less room than you would think.** The grille must clear the
+   locating rails, not just the feet, and the measured band is 166 mm rather
+   than the 180 mm assumed. The usable range is **−5.9 to +16.1 mm**, and it
+   is asymmetric because the band sits ~5 mm rearward of centre. That
+   asymmetry helps: rearward is the direction the vents are, and 16 mm of it
+   survives. The model asserts it: `fan_offset_y=16` renders, `17` fails. If the vents turn out to sit
    further back than 18 mm off centre, a single round grille cannot reach
    them, and the answer is a smaller fan, a non-circular grille, or
    accepting partial coverage. Worth knowing before the measurement comes
@@ -479,8 +484,9 @@ Three ways out, best first:
 If the fan is ever run at 5 V for a test, leave the PWM pin **unconnected**.
 The P14 Slim stops below 9% duty, and a floating PWM line runs it flat out,
 which is what you want when the supply is already the limit.
-5. **The laptop's own feet.** Assumed at 20 mm front and rear
-   (`laptop_foot_band`) and asserted against, but not measured. It matters
+5. ~~**The laptop's own feet.**~~ **Mostly settled** — measured 2026-09-04,
+   see MEASUREMENTS.md. What remains is the strips' **height**, which sets
+   `rail_h`, and the rear strip's width. It matters
    twice: a foot on the grille blocks it, and the feet set the standoff gap
    the exhaust must cross to reach the vents. Not published in any usable
    form. Measurements needed: **MEASUREMENTS.md** C1–C4.

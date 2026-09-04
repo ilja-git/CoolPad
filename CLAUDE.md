@@ -49,9 +49,11 @@ in preview is not verified.
   125 mm pitch, 12 V. Don't treat those numbers as placeholders.
 - Section cut boxes must clear the locating rails, or their tops survive as
   detached slivers that look fine in a render.
-- Almost everything on the top surface is positioned from `laptop_foot_band`,
-  which is a **guess** until MEASUREMENTS.md C1–C4 come back. Treat numbers
-  derived from it as provisional, and never hard-code one.
+- The top surface is positioned from the laptop's own feet, **measured**
+  2026-09-04 and recorded in MEASUREMENTS.md: `foot_gap_rear`,
+  `foot_w_front`, `foot_clear_span`. The band is asymmetric — 21.9 mm rear,
+  32.1 mm front — so never assume it is centred. `foot_w_rear` is still an
+  assumption. Derive from these; never hard-code a position.
 
 ## Output has to work on a phone
 

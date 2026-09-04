@@ -89,8 +89,8 @@ All dimensions are millimetres. The headline ones:
 | `height` | 29  | Z of the shell, **computed** — see below |
 | `fan_size` / `fan_thickness` | 140 / 16 | ARCTIC P14 Slim PWM PST |
 | `plenum_gap` | 7 | fan inlet clearance under the fan |
-| `fan_offset_y` | 0 | shifts the fan/grille toward the rear; **±18 mm max** |
-| `laptop_foot_band` | 20 | where the laptop's own feet land — **unmeasured** |
+| `fan_offset_y` | 0 | shifts the fan/grille toward the rear; **−5.9 to +16.1 mm** |
+| `foot_clear_span` | 166 | clear band between the laptop's own feet — **measured** |
 | `rail_h` / `rail_w` | 5 / 6 | locating rails on the top surface |
 | `intake_rear_block` | 45 | solid rear side-wall, so hot air is not re-inhaled |
 | `base_round` | 3 | rolled bottom edge, for handling |

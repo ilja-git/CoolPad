@@ -81,10 +81,18 @@ fan_offset_y = 0;
 // The laptop's feet, and the rails that trap it
 // ---------------------------------------------------------------------------
 
-// Strip at the front and rear of the top plate where the laptop's own rubber
-// feet land. UNMEASURED - 20 mm is a working guess, MEASUREMENTS.md C1-C4
-// settles it. Nearly everything on the top surface is positioned from it.
-laptop_foot_band = 20;
+// Where the laptop's own rubber feet land, MEASURED on the machine on
+// 2026-09-04. See MEASUREMENTS.md. They are two long strips running nearly
+// the full width, not pads, and the band between them is not symmetric.
+foot_gap_rear   = 14.14;  // rear edge -> outboard edge of the rear strip
+foot_w_front    = 7.8;    // width of the front strip
+foot_clear_span = 166.0;  // between the strips: 118.72 + 47.30, taken in two
+                          // parts because a 150 mm caliper cannot span it
+
+// The rear strip's width was not measured. Assuming it matches the front is
+// the only guess left in this block; if it turns out different, the whole
+// band shifts front-to-back by the difference and nothing else changes.
+foot_w_rear     = foot_w_front;
 
 // Rails running left to right, just inboard of the laptop's feet. The laptop
 // sits between them and its feet butt against their outer faces, so it
@@ -164,8 +172,15 @@ lo_band = [floor_t + band_margin, split_z - band_margin];
 hi_band = [split_z + band_margin, height - top_t - band_margin];
 
 // Inner faces of the locating rails: the clear span the grille must fit in.
-rail_front = laptop_foot_band + rail_w;
-rail_rear  = width - laptop_foot_band - rail_w;
+// Inboard edges of the laptop's foot strips, i.e. the clear band the rails
+// and grille have to live inside. Derived from the measurements above rather
+// than set, so a corrected measurement moves everything at once.
+foot_band_rear  = foot_gap_rear + foot_w_rear;               // 21.94
+foot_band_front = width - foot_band_rear - foot_clear_span;  // 32.06
+
+// Inner faces of the rails: the clear span the grille must fit in.
+rail_front = foot_band_front + rail_w;
+rail_rear  = width - foot_band_rear - rail_w;
 
 // Aperture layout. One row per half, split by the joint line.
 intake_y0   = intake_front;
@@ -212,6 +227,8 @@ assert(min([for (j = joint_points(), f = fan_points())
 // The grille has to sit between the rails, not under one of them - and by
 // extension not under a laptop foot. This is the tightest constraint on
 // fan_offset_y by a long way.
+assert(foot_band_front > 0 && foot_band_rear > 0,
+       "the measured foot band does not fit inside the pad's depth");
 assert(fan_bore <= rail_rear - rail_front,
        str("grille (", fan_bore, " mm) will not fit between the rails (",
            rail_rear - rail_front, " mm)"));
@@ -381,7 +398,7 @@ module grille_openings() {
 module locating_rails() {
     x0    = rail_x_inset;
     len_x = length - 2 * rail_x_inset;
-    for (y0 = [laptop_foot_band, rail_rear])
+    for (y0 = [foot_band_front, rail_rear])
         hull() {
             translate([x0, y0 + rail_w / 2, height + rail_h - rail_w / 2])
                 rotate([0, 90, 0]) cylinder(d = rail_w, h = len_x);

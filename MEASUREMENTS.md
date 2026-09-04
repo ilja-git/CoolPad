@@ -39,48 +39,107 @@ are worth it for C3 only.
 
 ---
 
-## Received 2026-09-04 — raw caliper readings, not yet identified
+## Measured 2026-09-04 — the real machine
 
-Photos and a Scaniverse scan are in `scan/` (gitignored — large, and not
-source; the numbers that matter belong in this file).
+Photos and a Scaniverse scan are in `scan/` (gitignored — large binaries, and
+not source; the numbers that matter belong here). Photo names say what each
+one shows.
 
 **The scan is not usable for measurement.** It is metrically scaled, but its
 raw bounding box is 395 × 35 × 386 mm against a real 311 × 220 × 16, and even
-trimming outliers the thickness axis reads 21–23 mm. That is the ~1 cm noise
-floor expected of iPhone LiDAR. Keep it as a visual reference; take numbers
-from the calipers.
+trimming outliers the thickness axis reads 21–23 mm — the ~1 cm noise floor
+of phone LiDAR. Keep it as a visual reference; the numbers come from the
+calipers.
 
-These readings are legible on the caliper displays, but **which dimension
-each one is cannot be told from the photo**. Fill in the middle column:
+Throughout, **rear** is the hinge edge and **front** is the edge nearest the
+user.
 
 | Reading | What it measures | Feeds |
 | ------- | ---------------- | ----- |
-| 154.32 mm | | |
-| 118.72 mm | | |
-| 47.87 mm | | |
-| 47.30 mm | | |
-| 16.42 mm | | |
-| 14.14 mm | | |
-| 7.80 mm | | |
+| 14.14 mm | Rear edge → outboard edge of the rear foot strip. The downward exhaust vent sits inside this band, and there appears to be a second exhaust on the rear face itself. | `foot_gap_rear`, §6.1 |
+| 118.72 mm | Rear foot strip → the step in the bottom panel where the vented area ends. | clear span, part 1 |
+| 47.87 mm | That step → the front foot strip. | clear span, part 2 |
+| 47.30 mm | The same span measured again. | repeatability |
+| 16.42 mm | Foot strip → the side, measured laterally, out to where the underside starts to slope away. The flat bearing area extends this far past the end of the strip. | `rail_x_inset` |
+| 7.80 mm | Width of the front foot strip. It is sloped, so its **height** is still unmeasured. | `foot_w_front` |
+| 154.32 mm | Not a measurement. The 150 mm caliper ran out of travel trying to span the two feet in one go — which is why the span was taken in two parts instead. | — |
 
-Two of them (47.87 / 47.30) are clearly the same feature measured twice,
-which is a good sign for repeatability.
+### The number that matters: 166 mm between the feet
 
-### What the straight-down photos already settle
+```
+118.72  rear foot → step
++ 47.30  step → front foot      (the smaller of the two reads)
+--------
+ 166.02  clear span between the foot strips
+```
 
-The bottom intake is a **single very large perforated field**, not two
-openings — so B5 is answered, and one circular grille is the right shape. It
-spans most of the width and a broad band of the depth in the rear half,
-which means a 132 mm grille overlaps it heavily even before any offset. The
-fan-alignment risk (§8.2) is therefore much smaller than feared.
+The two reads of the second leg differ by **0.57 mm**, which is the honest
+repeatability of measuring a soft rubber strip by hand. The **smaller** value
+is used deliberately: too small and the rails sit slightly inboard of the
+feet, which costs nothing; too large and they land under a foot, which is the
+failure the rails exist to avoid.
 
-There are **two long rubber foot strips**, one just inboard of the rear edge
-and one near the front edge, both running nearly the full width — so C1 is
-answered: strips, not pads, which is what the locating rails were designed
-around.
+**This is 14 mm tighter than the 180 mm that was assumed**, and it moved the
+design. See "What changed" below.
 
-Exact positions still need the numbers above, because scaling them off a
-photograph by eye is guesswork and would be worse than no data.
+### Where that band sits, front to back
+
+Measuring from the rear edge:
+
+```
+   0.00   rear edge
+  14.14   rear foot strip starts          measured
+      ?   rear foot strip width           NOT MEASURED - assumed 7.8, as the front
+ 166.02   clear span between the strips   measured (two-part)
+   7.80   front foot strip width          measured
+      ?   front foot strip → front edge   NOT MEASURED - falls out of the total
+```
+
+On the assumption that the rear strip matches the front at 7.8 mm, the clear
+band runs from **21.9 mm to 188.0 mm** from the rear edge. Against a 220 mm
+depth that puts its centre about **5 mm rearward** of the pad's own centre —
+so a centred fan is very slightly forward of ideal, but only just.
+
+### What changed in the model
+
+| | Was | Now |
+| --- | --- | --- |
+| Clear span between feet | 180 mm (guess) | **166.0 mm** (measured) |
+| Band symmetry | symmetric | **21.9 rear / 32.1 front** |
+| `fan_offset_y` range | ±18 mm | **−5.9 to +16.1 mm** |
+
+The grille is 132 mm and the two rails take 6 mm each, so 144 mm of the
+166 mm span is spoken for, leaving 22 mm to share between the two ends. It
+still fits.
+
+The offset range is no longer symmetric, because the band is not: it sits
+about 5 mm rearward of the pad's centre. **That asymmetry is in our favour.**
+The vents are toward the rear, so rearward is the direction we want to move,
+and there is 16 mm of it — nearly as much as the 18 mm the symmetric guess
+promised. It is forward travel that has almost vanished, and nothing wants to
+go that way. Verified against the model: `fan_offset_y=16` renders, `17`
+fails; `-5` renders, `-6` fails.
+
+### Still outstanding
+
+- **Foot strip height.** Sets `rail_h`, which must exceed it or the laptop
+  rests on its own feet and the rails locate nothing. The strips are sloped,
+  so this is awkward — a sheet of paper or a feeler gauge slid under the
+  laptop until it stops would answer it well enough.
+- **Rear foot strip width**, currently assumed equal to the front at 7.8 mm.
+  If it is different, the band shifts front-to-back by the difference.
+- **Overall depth**, still taken as 220 mm.
+
+### What the straight-down photos settle on their own
+
+The bottom intake is a **single large perforated field**, not two openings —
+so one circular grille is the right shape. It spans most of the width and a
+broad band of the depth, so a 132 mm grille overlaps it heavily even before
+any offset. The fan-alignment worry (§8.2) is much smaller than feared.
+
+There are **two long rubber foot strips**, front and rear, running nearly the
+full width — strips, not pads, which is exactly what the locating rails were
+designed around.
 
 ## A. Footprint — confirms what is already assumed
 
