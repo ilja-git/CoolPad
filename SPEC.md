@@ -379,25 +379,27 @@ up for free — the pad would become 28.5 mm.
 Switching is a three-line change (`fan_thickness = 15.5`, and the comment),
 so it is not worth doing until one is actually ordered.
 
-## 6.2 The laptop's underside is stepped — unresolved
+## 6.2 The laptop's underside is stepped
 
 Measured 2026-09-04: the G14's underside is **not a plane**. The vented rear
-section is about 1.6 mm thicker than the front section, and the rear foot
-strip is taller than the front one to suit. The side profile confirms it.
+section is thicker than the front, and the rear foot strip is taller to suit,
+so standing on a table the rear underside sits **0.75 mm further from it**
+than the front. The side profile confirms the shape.
 
 This matters because the rails bear on the underside directly, bypassing the
-laptop's own feet. Two rails of equal height will meet the lower section
-first and leave a gap under the higher one — so the laptop rests on one rail
-and its own rubber, and the point of trapping it between two rails is lost.
+laptop's own feet. Two rails of equal height would meet the front section
+first and leave the rear one hanging — the laptop would rest on one rail and
+its own rubber, and trapping it between two rails would achieve nothing.
 
-`rail_h_front` and `rail_h_rear` are therefore separate variables, both
-defaulting to `rail_h`. **Neither has been given a guessed value.** The step
-reads 1.3–2.2 mm depending on which pair of thickness measurements is used,
-and the foot difference 0.8–1.4 mm; both spreads are as large as the effect,
-because every one of those numbers came from subtracting two ~14 mm readings.
+So the rails are **not the same height**: `rail_h_front` 5.0 mm and
+`rail_h_rear` 5.75 mm, with the difference derived from
+`laptop_underside_step` rather than typed in.
 
-MEASUREMENTS.md says what to measure to settle it: the table-to-underside gap
-at each foot, taken directly rather than derived.
+That step is the weakest number in the model — a difference of two
+differences, carrying the error of four readings — and it is the one thing
+that would change a dimension rather than confirm it. It is item 1 of
+"Numbers that need remeasuring" in MEASUREMENTS.md, and
+`grep -n REMEASURE src/coolpad.scad` finds it and its siblings in the model.
 
 ## 7. Material
 

@@ -145,33 +145,44 @@ One discrepancy worth a second look: the display in
 the rear foot works out at 2.41 mm — identical to the front. It changes
 whether the two feet are the same height, which is the next point.
 
-### The underside is not flat, and that is a problem
+### The underside is not flat — measured, and applied
 
-The rear section is thicker than the front by about 1.6 mm, and the rear
-foot is taller than the front foot. Confirmed by the side-profile photo.
+The rear section is thicker than the front, and the rear foot is taller to
+suit. From your pairings:
 
-**Equal rails may therefore touch on one side only.** The rails bear on the
-underside directly, bypassing the laptop's own feet — but the underside is
-stepped, so a pair of 5 mm rails will meet the lower section first and leave
-a gap under the higher one. The laptop then rests on one rail and its own
-rubber, and the whole point of trapping it between two rails is lost.
+```
+front foot   15.07 - 12.66 = 2.41 mm
+rear  foot   17.80 - 14.64 = 3.16 mm
+                             ------
+rear underside sits higher by  0.75 mm
+```
 
-`rail_h_front` and `rail_h_rear` are now separate knobs, both defaulting to
-`rail_h`. **No value has been guessed**: the step (1.3–2.2 mm across the
-pairings) and the foot difference (0.8–1.4 mm) are each about as large as the
-scatter in the numbers they came from, so the model cannot be told which rail
-to raise, or by how much, without better data.
+Standing on a table, the rear underside is 0.75 mm further from it than the
+front. The rails bear on the **underside**, not on the feet, so the rear rail
+has to make up exactly that or it never touches — and the laptop would rest
+on the front rail plus its own rubber, which defeats the point of trapping it
+between two rails.
 
-#### The one measurement that settles it
+**Applied:** `rail_h_front` 5.0 mm, `rail_h_rear` 5.75 mm, the difference
+derived rather than typed in, so correcting the measurement moves the rail.
 
-Everything above was derived by differencing. Measure it directly instead —
-**stand the laptop on a flat table as normal, and measure the gap from the
-table to the underside**, once just inboard of the rear foot strip and once
-just inboard of the front one. Two numbers, no subtraction, and their
-difference is exactly how much taller one rail has to be.
+## Numbers that need remeasuring
 
-A stack of paper slid under until it stops works if the calipers will not
-reach: 80 gsm office paper is very close to 0.1 mm a sheet.
+These are **in the model and being built with**, but they are the weak ones.
+`grep -n REMEASURE src/coolpad.scad` lists them at any time.
+
+| Priority | Value | Why it is weak | How to fix it |
+| -------- | ----- | -------------- | ------------- |
+| **1** | `laptop_underside_step` 0.75 mm | A difference of two differences, so it carries the error of four readings — and it alone sets how much taller the rear rail is. | Stand the laptop on a flat table and measure the **table-to-underside gap** just inboard of each foot strip. Two numbers, no subtraction. |
+| **2** | `laptop_foot_h_front/rear` 2.41 / 3.16 | Same problem, one level up: ~2.5 mm answers from ~14 mm readings. | The same two numbers as above. |
+| **3** | `foot_clear_span` 166.0 mm | The two reads of its second leg differed by 0.57 mm, and this positions the rails, the grille and the fan. | Re-take the 47 mm leg a third time; or measure rear-foot-to-front-foot in one go with a rule longer than 150 mm. |
+| **4** | `foot_gap_rear` 14.14 mm | One read, never repeated. | Repeat it. |
+| **5** | `length` 311 / `width` 220 | ASUS's published figures. Never checked on the machine — the tape photos cannot be read closer than ~5 mm. | A rule along each edge. ±2 mm is plenty. |
+| **6** | `intake_rear_block` 45 mm | A pure guess, and the only one left. | Needs D1–D3 below: where the laptop actually exhausts. |
+
+Nothing here blocks building or printing. Items 1 and 2 are the ones that
+would change a dimension rather than confirm it, so they are worth doing
+first — and they are the same two measurements, so it is one trip.
 
 ### Still outstanding
 

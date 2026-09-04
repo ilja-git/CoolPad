@@ -49,6 +49,10 @@ in preview is not verified.
   125 mm pitch, 12 V. Don't treat those numbers as placeholders.
 - Section cut boxes must clear the locating rails, or their tops survive as
   detached slivers that look fine in a render.
+- Provisional numbers carry a `REMEASURE` comment saying why they are weak
+  and what to measure instead. `grep -n REMEASURE src/coolpad.scad` lists
+  them; MEASUREMENTS.md ranks them. Tag any new one the same way rather than
+  leaving a bare constant.
 - The top surface is positioned from the laptop's own feet, **measured**
   2026-09-04 and recorded in MEASUREMENTS.md: `foot_gap_rear`,
   `foot_w_front`, `foot_clear_span`. The band is asymmetric — 21.9 mm rear,

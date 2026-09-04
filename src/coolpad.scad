@@ -42,6 +42,8 @@ pilot_m4  = printed ? 3.6  : 3.3;   // M4, fan screws
 
 // Sized to an ASUS ROG Zephyrus G14, GA403 generation (2024 on): the
 // laptop is approximately 311 x 220 x 16 mm.
+// REMEASURE: both are ASUS's published figures, never checked on the machine.
+// The tape-measure photos exist but cannot be read to better than ~5 mm.
 length   = 311;   // X, across the laptop
 width    = 220;   // Y, front to back
 corner_r = 8;
@@ -85,8 +87,11 @@ fan_offset_y = 0;
 // 2026-09-04. See MEASUREMENTS.md. They are two long strips running nearly
 // the full width, not pads, and the band between them is not symmetric.
 foot_gap_rear   = 14.14;  // rear edge -> outboard edge of the rear strip
+                          // REMEASURE: one read only
 foot_clear_span = 166.0;  // between the strips: 118.72 + 47.30, taken in two
-                          // parts because a 150 mm caliper cannot span it
+                          // parts because a 150 mm caliper cannot span it.
+                          // REMEASURE: the two reads of the second leg
+                          // differed by 0.57, and this positions everything
 
 // The strips are tapered in section: a wide base bonded to the case,
 // narrowing to a flat that bears on the table. Both ends measured, both
@@ -95,16 +100,25 @@ foot_w_front    = 7.75;   // base width, front strip
 foot_w_rear     = 7.75;   // base width, rear strip
 foot_top_w      = 3.47;   // the flat that actually touches; mean of 3.42/47/52
 
-// Height of the strips. It could only be had by differencing two ~14 mm
-// thickness readings, so it inherits the error of both and lands anywhere in
-// 2.4-3.8 mm rather than on a number. That is fine, because only the upper
-// bound is load-bearing: rail_h has to clear it.
-laptop_foot_h_max = 3.8;
+// Height of the strips, from the thickness readings with and without them:
+//   front  15.07 - 12.66 = 2.41
+//   rear   17.80 - 14.64 = 3.16
+// Both are differences of two ~14 mm reads, so each carries a few tenths.
+// Only the larger is load-bearing - the rails have to clear it.
+// REMEASURE both: differencing two ~14 mm reads to get ~2.5 mm inherits the
+// error of both. Measure the table-to-underside gap at each foot directly.
+laptop_foot_h_front = 2.41;
+laptop_foot_h_rear  = 3.16;
+laptop_foot_h_max   = max(laptop_foot_h_front, laptop_foot_h_rear);
 
-// The underside is NOT flat. It steps by roughly 1.6 mm (the reads span
-// 1.3-2.2) where the thicker vented rear section meets the thinner front
-// section, so the two strips do not stand on a common plane. Not modelled:
-// the scatter is as large as the effect. See SPEC.md section 6.2.
+// The underside is NOT flat. Standing on a table the rear underside is this
+// much further from it than the front, because the rear foot is taller. The
+// rails bear on the underside rather than on the feet, so the rear rail has
+// to make up exactly this difference or it never touches. See SPEC.md 6.2.
+// REMEASURE FIRST: this is a difference of two differences, so it carries
+// the error of four readings, and it alone sets how much taller the rear
+// rail is. Everything else here is more solid than this number.
+laptop_underside_step = laptop_foot_h_rear - laptop_foot_h_front;   // 0.75
 
 // Rails running left to right, just inboard of the laptop's feet. The laptop
 // sits between them and its feet butt against their outer faces, so it
@@ -118,13 +132,12 @@ rail_h       = 5;   // common default for both rails
 rail_w       = 6;
 rail_x_inset = 16;
 
-// The two rails are separately adjustable, because the laptop's underside is
-// stepped and its own feet differ in height front to rear. Equal rails may
-// therefore touch on one side only, leaving the laptop resting on one rail
-// and its own rubber. Both default to rail_h until the step is measured
-// decisively - see SPEC.md 6.2 - at which point one of these grows.
+// The rails are NOT the same height, because the surface they bear on is not
+// flat. The rear one is raised by the measured underside step; equal rails
+// would meet the front section first and leave the rear one hanging, and the
+// laptop would rest on one rail and its own rubber.
 rail_h_front = rail_h;
-rail_h_rear  = rail_h;
+rail_h_rear  = rail_h + laptop_underside_step;
 
 // ---------------------------------------------------------------------------
 // Side intake - open, not louvered
@@ -142,6 +155,8 @@ band_margin  = 1;    // solid material kept above and below each band
 // its back edge, and without this the pad inhales its own exhaust straight
 // back through the side intake. The length is a guess until MEASUREMENTS.md
 // D1-D3 land, and it is the single cheapest thing to retune afterwards.
+// REMEASURE: a pure guess. It waits on where the laptop actually exhausts,
+// which is MEASUREMENTS.md D1-D3 and has not been measured at all.
 intake_rear_block = 45;
 
 // ---------------------------------------------------------------------------
