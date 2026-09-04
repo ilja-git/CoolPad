@@ -59,6 +59,13 @@ top_t   = 3;
 // rest on a lap. Purely ergonomic; nothing depends on it.
 base_round = 3;
 
+// The front is rolled to a much larger radius - a nose rather than an edge.
+// A full half-round would be height/2, but that pulls the front face back far
+// enough to undercut the front foot recesses, and moving those means moving
+// the joint screws too. 9 mm reads as a nose and leaves the feet alone; the
+// assert below holds the line. See SPEC.md 6.3.
+front_round = 9;
+
 // ---------------------------------------------------------------------------
 // Fan: ARCTIC P14 Slim PWM PST, 140 x 140 x 16, 4-pin PWM, 12 V
 // ---------------------------------------------------------------------------
@@ -143,13 +150,18 @@ rail_h_rear  = rail_h + laptop_underside_step;
 // Side intake - open, not louvered
 // ---------------------------------------------------------------------------
 
-// The sides are open. Louvers cost roughly a third of the free area and buy
-// nothing this design needs, so what remains is the least structure that
-// keeps a 3 mm wall from flexing: a few large apertures with posts between.
-aperture_max = 45;   // widest an aperture gets before another post is added
-post_w       = 6;    // material left between apertures
+// The sides are open - one opening per half per side, nothing in it. Bars
+// across an intake are the cheapest thing to draw and the most expensive
+// thing to breathe through, so the structure went inside instead: ribs
+// standing edge-on to the incoming air, where they cost almost nothing.
 intake_front = 14;   // solid material kept at the front corner
 band_margin  = 1;    // solid material kept above and below each band
+
+// Internal ribs. Plates lying in the XZ plane, so air entering through the
+// side wall travels along their faces rather than into their edges.
+rib_n   = 3;         // per side, per half
+rib_t   = 3;         // thickness, in Y
+rib_len = 12;        // how far each reaches inboard of the wall
 
 // Solid section at the REAR of each side wall. The laptop dumps hot air off
 // its back edge, and without this the pad inhales its own exhaust straight
@@ -179,7 +191,7 @@ foot_t = 1;
 // Feet sit at the corners for stability; the joint screws are inboard of
 // them so a stuck-on foot never covers a screw head.
 joint_inset = 28;
-foot_inset  = 16;
+foot_inset  = 18;     // moved out from 16 to clear the rolled front
 
 $fa = 2;
 $fs = 0.6;
@@ -217,26 +229,27 @@ foot_band_front = width - foot_band_rear - foot_clear_span;  // 32.06
 rail_front = foot_band_front + rail_w;
 rail_rear  = width - foot_band_rear - rail_w;
 
-// Aperture layout. One row per half, split by the joint line.
+// One opening per half, per side. No posts: the ribs inside carry the wall.
 intake_y0   = intake_front;
 intake_y1   = width - intake_rear_block;
 intake_span = intake_y1 - intake_y0;
-n_aper      = max(1, ceil(intake_span / (aperture_max + post_w)));
-aper_w      = (intake_span - (n_aper - 1) * post_w) / n_aper;
 
-function aperture_positions() =
-    [for (i = [0 : n_aper - 1]) intake_y0 + i * (aper_w + post_w)];
+function rib_positions() =
+    [for (i = [1 : rib_n]) intake_y0 + i * intake_span / (rib_n + 1)];
 
 // Free area of the intake, against the fan's bore. The intake is the
 // restriction in this design, so this number is worth watching.
 function stadium_area(w, h) = max(w - h, 0) * h + PI * pow(h / 2, 2);
-intake_area = 2 * n_aper * (stadium_area(aper_w, lo_band[1] - lo_band[0])
-                            + stadium_area(aper_w, hi_band[1] - hi_band[0]));
+// Two sides, two halves, less what the ribs stand in.
+intake_area = 2 * (stadium_area(intake_span, lo_band[1] - lo_band[0])
+                   + stadium_area(intake_span, hi_band[1] - hi_band[0]))
+              - 2 * rib_n * rib_t * ((lo_band[1] - lo_band[0])
+                                     + (hi_band[1] - hi_band[0]));
 bore_area   = PI * pow(fan_bore / 2, 2);
 
 echo(str("intake free area = ", round(intake_area), " mm2 = ",
-         round(100 * intake_area / bore_area), "% of the fan bore, in ",
-         2 * n_aper, " apertures"));
+         round(100 * intake_area / bore_area), "% of the fan bore, ",
+         "in 4 open sides"));
 
 assert(height >= min_height,
        str("height=", height, " is too small: floor_t + plenum_gap + ",
@@ -279,11 +292,18 @@ assert(min(rail_h_front, rail_h_rear) > laptop_foot_h_max,
 assert(min(rail_h_front, rail_h_rear) > rail_w / 2,
        "rail height too small for its rounded top");
 
-// The apertures must stay openings rather than collapsing back into
-// slots, which is what the louvers were and what this replaced.
-assert(intake_span > 0 && aper_w >= lo_band[1] - lo_band[0],
-       str("side openings have collapsed to ", aper_w, " mm slots: ",
+// The openings must stay openings rather than collapsing back into slots.
+assert(intake_span >= 4 * (lo_band[1] - lo_band[0]),
+       str("side openings have collapsed to ", intake_span, " mm: ",
            "intake_front + intake_rear_block leave too little wall"));
+
+// The rolled front must not undercut the front foot recesses, or a stuck-on
+// foot hangs over the edge.
+assert(front_round + foot_d / 2 <= foot_inset,
+       str("front_round=", front_round, " undercuts the front feet; ",
+           "raise foot_inset above ", front_round + foot_d / 2));
+assert(front_round < height / 2 + 0.001,
+       "front_round cannot exceed half the height");
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -326,16 +346,47 @@ module aperture(w, h, d) {
         translate([0, y, 0]) rotate([0, 90, 0]) cylinder(d = h, h = d);
 }
 
-// One row of intake apertures through the left and right walls, between z0
-// and z1. Left and right only: the front wall is solid, and so is the rear,
-// which is reserved for the hinge and for getting the laptop's hot air away.
+// The intake: one clear opening per side, between z0 and z1. Left and right
+// only - the front is solid, and so is the rear, which is reserved for the
+// hinge and for getting the laptop's hot air away.
 module intake_openings(z0, z1) {
     h  = z1 - z0;
     zc = (z0 + z1) / 2;
-    for (y = aperture_positions()) {
-        yc = y + aper_w / 2;
-        translate([-1, yc, zc])              aperture(aper_w, h, wall + 2);
-        translate([length - wall - 1, yc, zc]) aperture(aper_w, h, wall + 2);
+    yc = (intake_y0 + intake_y1) / 2;
+    translate([-1, yc, zc])                aperture(intake_span, h, wall + 2);
+    translate([length - wall - 1, yc, zc]) aperture(intake_span, h, wall + 2);
+}
+
+// Ribs behind the opening, carrying the wall now that nothing spans it.
+// Edge-on to the incoming air, and overlapping the wall so the union is
+// never tangent to it.
+module intake_ribs(z0, z1) {
+    for (y = rib_positions())
+        for (x = [wall - 0.05, length - wall - rib_len + 0.05])
+            translate([x, y - rib_t / 2, z0])
+                cube([rib_len, rib_t, z1 - z0]);
+}
+
+// Everything at or behind the rolled front. Intersecting a part with this
+// turns its front edge into a nose without touching anything else - the same
+// clip serves both halves, so the two meet without a step at the joint.
+//
+// The profile is a flat face between two rolls, not a single bulge: rolled
+// away at the bottom so it does not dig into a lap, and at the top so the
+// laptop's front edge has nothing sharp under it.
+module nose_clip() {
+    r = front_round;
+    union() {
+        // everything behind the nose
+        translate([-1, r, -1])
+            cube([length + 2, width - r + 1, height + 22]);
+        // the flat face between the rolls
+        translate([-1, 0, r])
+            cube([length + 2, r, height - 2 * r]);
+        // the two rolls
+        for (z = [r, height - r])
+            translate([-1, r, z])
+                rotate([0, 90, 0]) cylinder(r = r, h = length + 2);
     }
 }
 
@@ -358,6 +409,8 @@ function fan_points() =
 // ---------------------------------------------------------------------------
 
 module bottom() {
+  intersection() {
+    nose_clip();
     difference() {
         union() {
             difference() {
@@ -370,6 +423,10 @@ module bottom() {
 
                 intake_openings(lo_band[0], lo_band[1]);
             }
+
+            // ribs carrying the side walls, now that nothing spans the
+            // openings from outside
+            intake_ribs(floor_t, split_z);
 
             // fan bosses, floor up to the underside of the fan
             for (p = fan_points())
@@ -398,6 +455,7 @@ module bottom() {
         for (p = foot_points())
             translate([p[0], p[1], -0.01]) cylinder(d = foot_d, h = foot_t);
     }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -450,6 +508,8 @@ module locating_rails() {
 module top_part() {
     plate_z = height - top_t;
 
+  intersection() {
+    nose_clip();
     difference() {
         union() {
             // skirt + plate
@@ -467,6 +527,7 @@ module top_part() {
                 translate([p[0], p[1], floor_t - boss_socket])
                     cylinder(d = boss_d, h = height - floor_t + boss_socket);
 
+            intake_ribs(split_z, plate_z);
             locating_rails();
         }
 
@@ -479,6 +540,7 @@ module top_part() {
             translate([p[0], p[1], floor_t - boss_socket - 1])
                 cylinder(d = pilot_m3, h = plate_z - floor_t + boss_socket + 1);
     }
+  }
 }
 
 // ---------------------------------------------------------------------------

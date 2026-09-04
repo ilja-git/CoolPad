@@ -78,9 +78,11 @@ Seen from the side, front to rear — this is the part that is new:
                                     laptop's hot air comes down here
 ```
 
-- **Intake: left and right walls, open.** Not louvers. Large apertures with
-  the minimum posts a 3 mm wall needs. Louvers cost about a third of the free
-  area and bought nothing this design wants.
+- **Intake: left and right walls, open.** One clear opening per half, per
+  side, with nothing across it. Bars over an intake are the cheapest thing to
+  draw and the most expensive thing to breathe through, so the structure went
+  **inside**: ribs lying in the XZ plane, edge-on to the incoming air, where
+  they cost about 6% of the opening instead of a third.
 - **The rear of each side wall is solid** (`intake_rear_block`). The laptop
   dumps hot air off its back edge; without this block the pad inhales its own
   exhaust. This costs intake area on purpose.
@@ -132,7 +134,8 @@ The history is worth keeping, because it shows what each decision cost:
 | --- | --- | --- |
 | Louvers, 120 mm fan | 3887 mm² | 39% |
 | Louvers, 140 mm fan | 4139 mm² | 30% |
-| **Open sides, 140 mm fan, rear blocked** | **5124 mm²** | **37%** |
+| Open sides with posts, rear blocked | 5124 mm² | 37% |
+| **Fully open sides, ribs inside** | **5699 mm²** | **42%** |
 
 Going to a 140 mm fan cost nine points, because the bore grew from 113 to
 132 mm while the louvers barely moved. Opening the sides won seven of them
@@ -195,7 +198,8 @@ silently broken geometry.
 | `foot_gap_rear` | 14.14 mm | rear edge → the rear foot strip; **measured** |
 | `foot_clear_span` | 166.0 mm | clear band between the foot strips; **measured** |
 | `foot_w_front` / `foot_w_rear` | 7.8 mm | foot strip width; the rear one is **assumed** |
-| `aperture_max` / `post_w` | 45 / 6 mm | side openings and the posts between |
+| `rib_n` / `rib_t` / `rib_len` | 3 / 3 / 12 mm | internal ribs behind the open sides |
+| `front_round` | 9 mm | radius of the rolled front nose |
 | `intake_front` | 14 mm | solid wall kept at the front corner |
 | `intake_rear_block` | 45 mm | solid rear wall, anti-recirculation; **a guess** |
 | `rail_h` / `rail_w` | 5 / 6 mm | locating rails; `rail_h` **must** exceed the laptop's foot height |
@@ -400,6 +404,36 @@ differences, carrying the error of four readings — and it is the one thing
 that would change a dimension rather than confirm it. It is item 1 of
 "Numbers that need remeasuring" in MEASUREMENTS.md, and
 `grep -n REMEASURE src/coolpad.scad` finds it and its siblings in the model.
+
+## 6.3 Rear exhaust shelf — specified, not yet modelled
+
+From `docs/idea-2-open-sides-and-exhaust.png`. Sketch, not to scale.
+
+The shell stops at the rear rail. Behind it the laptop's rear overhangs with
+**nothing underneath**, so the hot air it dumps off its back edge falls into
+open space instead of into a pocket. The pad's floor continues under that gap
+as a shelf and **sweeps upward at its trailing edge**, turning the exhaust up
+and back rather than down onto a lap.
+
+That also separates the two air paths properly for the first time. Intake is
+at the sides, forward of the rear rail; exhaust is behind it, above the shelf.
+The rail is the divider, and it is already there for another reason.
+
+What this changes, none of it done yet:
+
+- The shell's rear wall moves forward to the rear rail, around y = 198.
+  Everything behind becomes floor only.
+- `intake_rear_block` becomes redundant — the side openings simply stop where
+  the shell stops, which is exactly what it was faking.
+- The rear wall is no longer available for the hinge. §6 already flagged that
+  collision; this settles it in the exhaust's favour.
+
+**The open question is whether the pad may grow past the laptop.** Every
+revision so far has held the pad to the laptop's 311 × 220 footprint. A shelf
+inside that footprint gets about 22 mm behind the rail, which is roughly the
+depth of the overhang; a shelf that actually catches and turns the exhaust
+probably wants more. That is a decision, not a measurement, and it is not one
+to take quietly — so nothing is modelled until it is made.
 
 ## 7. Material
 

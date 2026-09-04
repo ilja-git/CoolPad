@@ -43,7 +43,8 @@ are worth it for C3 only.
 
 Photos and a Scaniverse scan are in `scan/` (gitignored — large binaries, and
 not source; the numbers that matter belong here). Photo names say what each
-one shows.
+one shows. The design sketches are in `docs/`, and unlike the photos they are
+**not to scale** — they carry intent, not dimensions.
 
 **The scan is not usable for measurement.** It is metrically scaled, but its
 raw bounding box is 395 × 35 × 386 mm against a real 311 × 220 × 16, and even

@@ -93,6 +93,7 @@ All dimensions are millimetres. The headline ones:
 | `foot_clear_span` | 166 | clear band between the laptop's own feet — **measured** |
 | `rail_h` / `rail_w` | 5 / 6 | locating rails on the top surface |
 | `intake_rear_block` | 45 | solid rear side-wall, so hot air is not re-inhaled |
+| `front_round` | 9 | radius of the rolled front nose |
 | `base_round` | 3 | rolled bottom edge, for handling |
 | `material` | `"printed"` | or `"aluminium"`: changes fits and hole sizes |
 
@@ -225,9 +226,9 @@ H2D, Prusa XL). The parts are not split for printing — see SPEC.md §5 if
 that assumption turns out to be wrong.
 
 Both halves print open face up: the bottom as it comes out, the top rotated
-180° so its plate is on the bed. No supports. The side apertures bridge over
-their short dimension, and the locating rails print as shallow domes with
-the plate on the bed.
+180° so its plate is on the bed. No supports. The side openings bridge over
+their short dimension, the internal ribs print as upstands, and the locating
+rails print as shallow domes with the plate on the bed.
 
 The parts are joined with four M3 screws driven **from underneath**, so no
 screw heads break the surface the laptop sits on. The pad's own rubber feet
