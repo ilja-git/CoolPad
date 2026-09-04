@@ -42,21 +42,23 @@ pilot_m4  = printed ? 3.6  : 3.3;   // M4, fan screws
 // laptop is approximately 311 x 220 x 16 mm.
 length   = 311;   // X, across the laptop
 width    = 220;   // Y, front to back
-height   = 28;    // Z, assembled. Derived in SPEC.md section 4.
 corner_r = 8;
+
+// height is deliberately absent here: it is not a free choice but the sum
+// of the stack, so it is derived from the fan below. See SPEC.md section 4.
 
 wall    = 3;
 floor_t = 3;
 top_t   = 3;
 
 // ---------------------------------------------------------------------------
-// Fan: 120 x 120 x 15 slim, standard 105 mm screw pitch
+// Fan: ARCTIC P14 Slim PWM PST, 140 x 140 x 16, 4-pin PWM, 12 V
 // ---------------------------------------------------------------------------
 
-fan_size        = 120;
-fan_thickness   = 15;
-fan_bore        = 113;
-fan_screw_pitch = 105;
+fan_size        = 140;
+fan_thickness   = 16;   // this alone sets the pad height - see the stack below
+fan_bore        = 132;  // frame opening, kept just inside the real one
+fan_screw_pitch = 125;  // ARCTIC's figure; the older 140 mm norm is 124.5
 fan_boss_d      = 9;
 
 // Axial clearance under the fan. This is its inlet - without it the fan is
@@ -118,6 +120,14 @@ $fs = 0.6;
 // ---------------------------------------------------------------------------
 
 min_height = floor_t + plenum_gap + fan_thickness + top_t;
+
+// The fan's top face has to land flush under the top plate or it exhausts
+// straight back into its own plenum, so the height follows the fan rather
+// than the other way round. Fit a thicker fan and the pad grows by itself.
+// -D height=... still overrides, and the assert below still catches a
+// height that would crush the fan.
+height     = min_height;
+
 split_z    = height / 2;          // top/bottom joint
 fan_z      = floor_t + plenum_gap; // underside of the fan
 cx         = length / 2;

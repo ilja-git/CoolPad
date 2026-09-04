@@ -1,6 +1,6 @@
 # CoolPad — specification
 
-Rev 0.3 — targeted at the GA403 G14.
+Rev 0.4 — targeted at the GA403 G14, ARCTIC P14 Slim fan.
 
 ## 1. Product
 
@@ -74,15 +74,21 @@ The model computes and echoes the result on every render, and CI prints it
 in the run summary:
 
 ```
-intake free area = 3887 mm2 = 39% of the fan bore
+intake free area = 4139 mm2 = 30% of the fan bore
 ```
 
-39% is a real restriction — the louvers, not the grille, are what limits
-flow. It is workable for a low-pressure axial fan but it is the first thing
-to attack if the pad underperforms. The levers, in order of cheapness:
-widen the slots further, deepen the louvered bands, or reopen the front
-wall. Reopening the front is the big one, and it is off the table by spec,
-not by accident.
+**The move to a 140 mm fan made this worse, not better.** The louvers gained
+a little area (the pad is 1 mm taller, so the bands are), but the fan's bore
+grew from 113 to 132 mm, and the ratio fell from 39% to 30%. The fan can now
+move more air than the walls can feed it, so the louvers, not the grille, are
+firmly the limit. It is the first thing to attack if the pad underperforms.
+The levers, in order of cheapness: widen the slots further, deepen the
+louvered bands, or reopen the front wall. Reopening the front is the big one,
+and it is off the table by spec, not by accident.
+
+The same applies under the fan: at `plenum_gap` 7 mm the annulus feeding the
+fan's inlet is about 2900 mm², so it is of the same order as the louvers.
+Raising the gap costs height 1 mm for 1 mm.
 
 ## 4. Height budget
 
@@ -91,17 +97,22 @@ Total height is not a free choice — it is the sum of the stack:
 ```
 floor_t       3      solid floor
 plenum_gap    7      fan inlet clearance   ← drives the design
-fan_thickness 15     120 x 120 x 15 slim fan
+fan_thickness 16     ARCTIC P14 Slim, 140 x 140 x 16
 top_t         3      top plate
 ------------------
-height       28
+height       29
 ```
+
+`height` is **not a variable you set** — the model computes it from this sum.
+Fit a different fan and the pad grows to suit, in one override:
+`-D fan_thickness=25` gives a 38 mm pad with no second edit and no chance of
+forgetting one.
 
 The fan's top face therefore lands flush against the underside of the top
 plate, so it exhausts into the grille without leaking back into the plenum.
 
-`height` is asserted against this sum in the model. Overriding it below the
-minimum fails the render with an explicit message rather than producing
+`-D height=...` still overrides, for the odd experiment. Overriding it below
+the minimum fails the render with an explicit message rather than producing
 silently broken geometry.
 
 ## 5. Nominal dimensions
@@ -110,21 +121,21 @@ silently broken geometry.
 | --------- | ------- | ---- |
 | `length` (X) | 311 mm | across the laptop (GA403) |
 | `width` (Y)  | 220 mm | front to back |
-| `height` (Z) | 28 mm  | derived from §4 |
+| `height` (Z) | 29 mm  | **computed**, not set — see §4 |
 | `corner_r`   | 8 mm   | |
 | `wall`, `floor_t`, `top_t` | 3 mm | |
-| `fan_size`   | 120 mm | standard 120 mm frame |
-| `fan_thickness` | 15 mm | slim; 25 mm is more common, 15 mm keeps the pad low |
-| `fan_screw_pitch` | 105 mm | standard for a 120 mm fan |
-| `fan_bore`   | 113 mm | |
+| `fan_size`   | 140 mm | ARCTIC P14 Slim frame |
+| `fan_thickness` | 16 mm | the P14 Slim's real thickness; sets the pad height |
+| `fan_screw_pitch` | 125 mm | ARCTIC's figure; the older 140 mm norm is 124.5 |
+| `fan_bore`   | 132 mm | frame opening, kept just inside the real one |
 | `fan_offset_y` | 0 | shifts the fan and grille toward the rear — see §8 |
 | `slot_w` / `slot_pitch` | 6 / 9 mm | louvers |
 | `stop_l` / `stop_h` | 24 / 4 mm | front stop ridges |
 
-`height` is the **shell** height. The stop ridges stand 4 mm proud of the
-top plate, so the top part's true bounding box is 32 mm tall. The CI run
-summary prints measured bounding boxes, so expect 14 for the tray and 32
-for the lid.
+`height` is the **shell** height. The top part's bounding box is larger in
+both directions: its screw bosses hang down to 1.5 mm and its stop ridges
+stand 4 mm proud of the plate. The CI run summary prints measured bounding
+boxes, so expect **14.5** for the tray and **31.5** for the lid.
 
 ### Print size
 
@@ -146,6 +157,24 @@ material for hinge bosses.
 Consequence of the future tilt, handled now: a tilted pad lets the laptop
 slide toward the user, so the top plate carries two **stop ridges** along
 the front edge.
+
+### The fan
+
+**ARCTIC P14 Slim PWM PST**: 140 × 140 × 16 mm, fluid dynamic bearing,
+120–1800 rpm PWM, 47 cfm, 1.31 mmH₂O static pressure, 130 g, mounting holes
+⌀4.3 mm on a 125 mm pitch.
+
+Two consequences worth carrying forward:
+
+- **It is 12 V.** A USB-A port gives 5 V, and USB-C gives 5 V unless
+  something negotiates higher. Powering this from a laptop port is not a
+  detail to leave to the end — see §8.
+- **PST means two connectors** on the lead: a 4-pin socket and a 4-pin
+  daisy-chain plug, each roughly 10.5 × 6.5 mm. The 14 × 8 mm cable port
+  passes them one at a time, which works but is snug.
+
+Its 1.31 mmH₂O static pressure is the number that makes the restriction in
+§3 tolerable: this is a pressure-optimised fan, not a free-air one.
 
 ## 7. Material
 
@@ -188,12 +217,21 @@ guessed at.
    through vents toward the **rear** of its underside, so a centred grille
    may not sit under them. `fan_offset_y` shifts the fan and grille back in
    one override once the vent positions are measured.
-3. **Fan.** 120 × 15 assumed. Confirm the actual fan, since its thickness
-   sets the pad's height directly.
-4. **Power.** A rear cable port is modelled as a plain 14 × 8 mm slot for a
-   fan lead. If this should take a USB-C jack or an inline switch instead,
-   the port needs resizing to the chosen part.
-5. **Seam.** The butt joint is not airtight. Minor for a low-pressure fan;
+3. ~~**Fan.**~~ **Settled:** ARCTIC P14 Slim PWM PST, 140 × 140 × 16. The
+   model is built around it and the height follows from it.
+4. **Power — now the sharp one.** The fan is **12 V**; USB is 5 V. Either
+   accept reduced speed on 5 V (a 12 V fan usually spins, slowly, and may
+   not start reliably), add a USB-C PD trigger board to pull 12 V, or use a
+   separate 12 V supply. This decides the cable port: a barrel jack, a
+   USB-C receptacle and a trigger board, or the current bare 14 × 8 mm slot
+   for a pass-through lead. Nothing else in the design blocks on it, but the
+   port cannot be finalised until it is chosen.
+5. **The laptop's own feet.** Where the G14's rubber feet land on the top
+   plate is unmeasured. It matters twice: a foot sitting on the grille
+   blocks part of it, and the feet set the standoff gap through which the
+   pad's exhaust reaches the laptop's vents. Not published in any usable
+   form — measure the real machine.
+6. **Seam.** The butt joint is not airtight. Minor for a low-pressure fan;
    a gasket groove can be added if the leak matters.
-6. **Stop ridges.** 4 mm proud. The right height depends on the hinge
+7. **Stop ridges.** 4 mm proud. The right height depends on the hinge
    angle, so revisit when the tilt is fixed.
