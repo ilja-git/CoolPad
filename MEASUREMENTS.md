@@ -120,6 +120,33 @@ promised. It is forward travel that has almost vanished, and nothing wants to
 go that way. Verified against the model: `fan_offset_y=16` renders, `17`
 fails; `-5` renders, `-6` fails.
 
+### Second batch, 2026-09-04 — readings without labels
+
+Twelve more, filed as `caliper-<reading>-unlabelled*.jpg`. They cluster,
+which is informative on its own: a repeated reading is a deliberate one.
+
+| Reading(s) | Reads | Hypothesis — **needs confirming, not acted on** |
+| ---------- | ----- | ----------------------------------------------- |
+| 3.42 / 3.47 / 3.52 mm | 3 | **The foot strip height?** Three careful reads of one small feature, and this is the measurement that was being attempted. |
+| 7.75 / 7.75 mm | 2 | **The rear foot strip width?** The front strip measured 7.80 mm, and 7.75 is a hair off it. |
+| 12.43 / 12.66 mm | 2 | ? |
+| 14.00 / 14.59 mm | 2 | Near the 14.14 already recorded for rear edge → rear foot. A third read of it? |
+| 8.13 mm | 1 | ? |
+| 15.07 mm | 1 | ? |
+| 17.00 mm | 1 | ? |
+
+**If the first two are right, both open assumptions close at once:**
+
+- A foot height near **3.5 mm** clears `rail_h` at 5 mm with 1.5 mm to
+  spare, so the laptop rests on the rails and they locate it. The rev 0.5
+  concept holds without changing a number.
+- A rear strip at **7.75 mm** against the assumed 7.80 moves the whole band
+  by 0.05 mm — i.e. the assumption was as good as it could have been, and
+  `foot_clear_span` stands.
+
+They are **not** in the model. Two plausible clusters are not a measurement,
+and a wrong `rail_h` is the one error that quietly defeats the rails.
+
 ### Still outstanding
 
 - **Foot strip height.** Sets `rail_h`, which must exceed it or the laptop
