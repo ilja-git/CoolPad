@@ -12,9 +12,11 @@ open questions.
 ```
 SPEC.md                       what the part is and why
 src/coolpad.scad              the model, both parts
+tools/build.sh                builds everything; CI runs this same script
 tools/stl2usdz.py             STL -> USDZ, for viewing on a phone
 tools/check_usdz.py           verifies those USDZ files
-.github/workflows/render.yml  CI: STLs + USDZ + previews on every push
+tools/summarise.py            measured bounding boxes, for the run summary
+.github/workflows/render.yml  CI: calls tools/build.sh on every push
 ```
 
 ## The two parts
@@ -30,7 +32,7 @@ solids and a fan that is not part of either.
 
 ## Getting the output
 
-You do not need OpenSCAD installed. Every push runs the **Render** workflow
+You do not need anything installed. Every push runs the **Render** workflow
 and uploads an artifact named `coolpad-<sha>`:
 
 - `coolpad-bottom.stl`, `coolpad-top.stl` — the printable parts
@@ -80,21 +82,64 @@ All dimensions are millimetres. The headline ones:
 | -------- | ------- | ------- |
 | `length` | 311 | X, across the laptop (G14 GA403) |
 | `width`  | 220 | Y, front to back |
-| `height` | 28  | Z of the shell, **derived** — see below |
-| `fan_size` / `fan_thickness` | 120 / 15 | slim 120 mm fan |
+| `height` | 29  | Z of the shell, **computed** — see below |
+| `fan_size` / `fan_thickness` | 140 / 16 | ARCTIC P14 Slim PWM PST |
 | `plenum_gap` | 7 | fan inlet clearance under the fan |
 | `fan_offset_y` | 0 | shifts the fan/grille toward the rear |
 | `material` | `"printed"` | or `"aluminium"`: changes fits and hole sizes |
 
-`height` is not a free choice: it is `floor_t + plenum_gap + fan_thickness +
-top_t`. Setting it lower fails the render with a message telling you the
-minimum, rather than quietly producing a pad that crushes the fan.
+`height` is not a free choice, and not a variable you set: the model computes
+it as `floor_t + plenum_gap + fan_thickness + top_t`. Change the fan and the
+pad resizes itself. You can still force it with `-D height=`, and setting it
+below the minimum fails the render with a message telling you that minimum,
+rather than quietly producing a pad that crushes the fan.
 
 The model asserts several other things it would otherwise be easy to break
 by overriding — that the fan fits inside the walls, that the rubber feet do
 not land on the screw heads, and that the joint bosses clear the fan bosses.
 
-## Running it locally
+## Building it locally
+
+### Toolchain
+
+Fedora:
+
+```sh
+sudo dnf install openscad
+
+# only needed on a headless box: OpenSCAD wants a display to write a PNG
+sudo dnf install xorg-x11-server-Xvfb
+
+# the USDZ tools. Fedora's system python is externally managed, so use a venv
+python3 -m venv .venv
+.venv/bin/pip install usd-core numpy-stl
+```
+
+Debian/Ubuntu: `sudo apt install openscad xvfb`, then the same venv step.
+
+### One command
+
+```sh
+tools/build.sh                              # everything, into out/
+tools/build.sh --python .venv/bin/python    # USDZ deps living in a venv
+```
+
+CI runs this same script, so a local build and a CI build are the same
+build: the same manifold gate, the same camera angles, the same USDZ
+checks. Expect a couple of minutes — most of it is the five full CGAL
+renders behind the PNGs.
+
+```sh
+tools/build.sh --no-png            # skip the previews; much faster
+tools/build.sh --no-usdz           # skip USDZ and its Python deps
+tools/build.sh -D 'length=200'     # override a model variable
+tools/build.sh --help
+```
+
+`tools/summarise.py --out out --intake build/intake.txt` prints the measured
+bounding boxes — the same table CI puts in the run summary.
+
+### Or drive OpenSCAD directly
 
 ```sh
 # the two printable parts
@@ -106,6 +151,10 @@ openscad -D 'part="top"' -D 'length=200' -o top.stl src/coolpad.scad
 
 # machined version instead of printed (tighter fits, tapped holes)
 openscad -D 'part="top"' -D 'material="aluminium"' -o top.stl src/coolpad.scad
+
+# a different fan. The pad's height follows it on its own - there is no
+# second number to remember.
+openscad -D 'part="top"' -D 'fan_thickness=25' -o top.stl src/coolpad.scad
 
 # exploded preview. --render does a full render, so the image matches the
 # exported geometry. The separation has to clear the top plate or it hides
@@ -122,10 +171,6 @@ openscad --render --autocenter --viewall --imgsize=1600,1200 \
 # STL to USDZ for viewing on a phone, then verify the result
 python3 tools/stl2usdz.py coolpad-top.stl coolpad-top.usdz
 python3 tools/check_usdz.py coolpad-top.usdz coolpad-top.stl
-
-# a different fan changes the pad's height, so let height follow it
-openscad -D 'part="top"' -D 'fan_thickness=25' -D 'height=38' \
-         -o top.stl src/coolpad.scad
 ```
 
 Notes on `-D`:
@@ -136,6 +181,23 @@ Notes on `-D`:
   will eat it.
 - It only overrides *top-level* variables. Module parameters are not
   reachable this way.
+
+## Viewing the output on Fedora
+
+All of these are in Fedora's own repositories — no third-party repos needed.
+
+| Tool | Install | Good for |
+| ---- | ------- | -------- |
+| **F3D** | `sudo dnf install f3d` | The quick look, and the one to reach for first. Opens instantly: `f3d out/coolpad-top.stl`. Keys: `x`/`y`/`z` axis views, `e` edges, `s` surface, `r` raytracing if built with it. |
+| **PrusaSlicer** | `sudo dnf install prusa-slicer` | The check that actually matters. It tells you whether the part fits your bed, flags non-manifold errors in its own words, and previews the real print. |
+| **admesh** | `sudo dnf install admesh` | `admesh out/coolpad-top.stl` — a terminal report on manifoldness and mesh health, no GUI. |
+| **MeshLab** | `sudo dnf install meshlab` | Mesh forensics: measuring, cross sections, chasing down bad triangles. |
+| **FreeCAD** | `sudo dnf install freecad` | When you want to measure between features properly rather than eyeball it. |
+| **Blender** | `sudo dnf install blender` | Heavy, but it is the one thing here that also opens the `.usdz` files. |
+
+F3D plus PrusaSlicer covers this project: F3D to see it, PrusaSlicer to
+answer "will this print on my machine". OpenSCAD's own GUI is a viewer too —
+open `src/coolpad.scad`, press F6 for a full render, and orbit.
 
 ## Printing the test parts
 

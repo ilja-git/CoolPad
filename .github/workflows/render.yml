@@ -20,9 +20,6 @@ on:
         required: false
         default: ""
 
-env:
-  SCAD: src/coolpad.scad
-
 jobs:
   render:
     runs-on: ubuntu-latest
@@ -30,6 +27,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # xvfb because OpenSCAD needs a display to write a PNG. tools/build.sh
+      # picks it up automatically when DISPLAY is unset.
       - name: Install OpenSCAD
         run: |
           sudo apt-get update
@@ -66,129 +65,23 @@ jobs:
           echo "args=$args" >> "$GITHUB_OUTPUT"
           echo "Overrides:${args:- (none, using file defaults)}"
 
-      - name: Render parts and previews
+      # Everything is in tools/build.sh so that a local build and a CI build
+      # are the same build: the same manifold gate, the same camera angles,
+      # the same USDZ checks. Add build steps there, not here.
+      - name: Build
         env:
           ARGS: ${{ steps.params.outputs.args }}
-        run: |
-          set -o pipefail
-          mkdir -p out build
-          log=$(mktemp)
+        # shellcheck disable=SC2086  # $ARGS is deliberately word-split
+        run: tools/build.sh $ARGS
 
-          render() {
-            target="$1"; shift
-            echo "--- $target"
-            # shellcheck disable=SC2086  # $ARGS is deliberately word-split
-            if ! xvfb-run -a openscad $ARGS "$@" -o "$target" "$SCAD" 2>&1 | tee "$log"; then
-              echo "::error::openscad failed for $target"
-              return 1
-            fi
-            if [ ! -s "$target" ]; then
-              echo "::error::$target is empty or missing"
-              return 1
-            fi
-          }
-
-          # A part someone will print. OpenSCAD only *warns* about bad
-          # geometry and still exits 0, so a broken, unprintable STL would
-          # sail through unnoticed. The assembly mesh deliberately does not
-          # go through here: it is several separate bodies, for looking at.
-          render_part() {
-            if ! render "$@"; then return 1; fi
-            if grep -qi "not be a valid 2-manifold" "$log"; then
-              echo "::error::$1 is not a valid 2-manifold and cannot be printed"
-              return 1
-            fi
-          }
-
-          preview="--render --autocenter --viewall --imgsize=1600,1200 --colorscheme=Tomorrow"
-
-          # Printable parts
-          render_part out/coolpad-bottom.stl -D 'part="bottom"'
-          render_part out/coolpad-top.stl    -D 'part="top"'
-
-          # Assembled mesh, for viewing only - never printed, so no manifold
-          # gate. Kept out of the artifact as an STL so it cannot be mistaken
-          # for something to slice; it ships as USDZ instead.
-          render build/assembly.stl -D 'part="assembly"'
-
-          # iOS cannot preview an STL, so the PNGs are how this gets checked
-          # from a phone. --render forces a full CGAL render, so the images
-          # match the geometry that was exported above.
-          # shellcheck disable=SC2086
-          render out/preview-bottom.png   $preview -D 'part="bottom"'
-          # shellcheck disable=SC2086
-          render out/preview-top.png      $preview -D 'part="top"'
-          # the underside is where the top part's real geometry is
-          # shellcheck disable=SC2086
-          render out/preview-top-under.png $preview --camera=0,0,0,125,0,25,0 -D 'part="top"'
-          # the top plate hides the fan unless the parts are well separated
-          # and the camera is low enough to see into the gap
-          # shellcheck disable=SC2086
-          render out/preview-assembly.png $preview --camera=0,0,0,68,0,25,0 \
-            -D 'part="assembly"' -D 'explode=110'
-
-          # the model echoes the louver free area; it is the restriction in
-          # this design, so carry it into the summary
-          grep -o 'intake free area = [^"]*' "$log" | tail -1 > /tmp/intake.txt || true
-          # edge-on half cut: the only view that shows the plenum gap under
-          # the fan, which is what sets the pad's height
-          # shellcheck disable=SC2086
-          render out/preview-section.png  $preview --camera=0,0,0,72,0,12,0 \
-            -D 'part="assembly"' -D 'section=true'
-
-          ls -lh out
-
-      # iOS opens USDZ natively in Quick Look, including an AR mode that
-      # places the model in the room at true size. It is the only output here
-      # that can be turned around on a phone, so it is checked as strictly as
-      # the printable parts: a bad USDZ fails silently on the device.
-      - name: Convert to USDZ
-        run: |
-          set -o pipefail
-          python3 tools/stl2usdz.py out/coolpad-bottom.stl out/coolpad-bottom.usdz
-          python3 tools/stl2usdz.py out/coolpad-top.stl    out/coolpad-top.usdz
-          python3 tools/stl2usdz.py build/assembly.stl     out/coolpad-assembly.usdz \
-            --name coolpad_assembly
-          python3 tools/check_usdz.py \
-            out/coolpad-bottom.usdz   out/coolpad-bottom.stl \
-            out/coolpad-top.usdz      out/coolpad-top.stl \
-            out/coolpad-assembly.usdz build/assembly.stl
-
-      # An --autocenter --viewall preview has no scale reference: a 168 mm pad
-      # and a 1680 mm pad look identical. Put the real bounding boxes in the
-      # run summary so the numbers are visible next to the images on a phone.
       - name: Summarise
-        # Cosmetic only (and it assumes ASCII STL, which OpenSCAD writes by
-        # default) - never let it block the artifact upload.
+        # Cosmetic only - never let it block the artifact upload.
         continue-on-error: true
         env:
           ARGS: ${{ steps.params.outputs.args }}
         run: |
-          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-          import glob, os
-          print("### CoolPad\n")
-          print("| part | X (mm) | Y (mm) | Z (mm) |")
-          print("| ---- | ------ | ------ | ------ |")
-          for f in sorted(glob.glob("out/*.stl")):
-              pts = [tuple(map(float, l.split()[1:4]))
-                     for l in open(f) if l.strip().startswith("vertex")]
-              d = [max(p[i] for p in pts) - min(p[i] for p in pts) for i in range(3)]
-              name = os.path.basename(f).replace("coolpad-", "").replace(".stl", "")
-              print(f"| {name} | {d[0]:g} | {d[1]:g} | {d[2]:g} |")
-          args = os.environ.get("ARGS", "").strip()
-          print(f"\nOverrides: `{args}`" if args else "\nOverrides: none (file defaults)")
-          try:
-              intake = open("/tmp/intake.txt").read().strip()
-              if intake:
-                  print(f"\nIntake: {intake}.")
-          except OSError:
-              pass
-          print("\nThe top part's Z includes the 4 mm stop ridges.")
-          print("\nSTLs, USDZ and previews are in the artifact below.")
-          print("\nOn an iPhone: download the artifact, unzip it in Files, "
-                "then tap a `.usdz` - it opens in Quick Look, and the AR "
-                "button shows it at real size.")
-          PY
+          python3 tools/summarise.py --out out --intake build/intake.txt \
+            --overrides "$ARGS" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
