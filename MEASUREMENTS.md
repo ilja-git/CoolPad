@@ -120,32 +120,58 @@ promised. It is forward travel that has almost vanished, and nothing wants to
 go that way. Verified against the model: `fan_offset_y=16` renders, `17`
 fails; `-5` renders, `-6` fails.
 
-### Second batch, 2026-09-04 — readings without labels
+### Second batch — the feet, resolved
 
-Twelve more, filed as `caliper-<reading>-unlabelled*.jpg`. They cluster,
-which is informative on its own: a repeated reading is a deliberate one.
+The strips are **tapered in section**: a wide base bonded to the case,
+narrowing to a flat that actually touches the table.
 
-| Reading(s) | Reads | Hypothesis — **needs confirming, not acted on** |
-| ---------- | ----- | ----------------------------------------------- |
-| 3.42 / 3.47 / 3.52 mm | 3 | **The foot strip height?** Three careful reads of one small feature, and this is the measurement that was being attempted. |
-| 7.75 / 7.75 mm | 2 | **The rear foot strip width?** The front strip measured 7.80 mm, and 7.75 is a hair off it. |
-| 12.43 / 12.66 mm | 2 | ? |
-| 14.00 / 14.59 mm | 2 | Near the 14.14 already recorded for rear edge → rear foot. A third read of it? |
-| 8.13 mm | 1 | ? |
-| 15.07 mm | 1 | ? |
-| 17.00 mm | 1 | ? |
+| Reading(s) | What it is |
+| ---------- | ---------- |
+| 7.75 / 7.75 / 8.13 mm | **Base width**, both strips. 8.13 discarded as a bad read. The rear strip is no longer an assumption. |
+| 3.42 / 3.47 / 3.52 mm | **Width of the flat top**, the part that bears. Rubber, so three reads; mean 3.47. |
+| 12.66 / 15.07 mm | Front section thickness without / with its foot → **front foot ≈ 2.4 mm** |
+| 14.00, 14.64 / 17.80 mm | Rear section thickness without / with its foot → **rear foot ≈ 3.2–3.8 mm** |
+| 12.43 / 14.00 mm | Thickness after / before the vent drop → **the underside steps ≈ 1.6 mm** |
 
-**If the first two are right, both open assumptions close at once:**
+**A caution on the two foot heights.** Both came from subtracting two ~14 mm
+readings, so each inherits the error of both. The inputs disagree by 0.64 mm
+on the rear body alone, which is a quarter of the answer. Taken across every
+pairing the foot height lands anywhere in **2.4–3.8 mm** rather than on a
+number. Only the upper bound is load-bearing, and `rail_h` at 5 mm clears all
+of it — so the rev 0.5 concept holds and nothing had to change.
 
-- A foot height near **3.5 mm** clears `rail_h` at 5 mm with 1.5 mm to
-  spare, so the laptop rests on the rails and they locate it. The rev 0.5
-  concept holds without changing a number.
-- A rear strip at **7.75 mm** against the assumed 7.80 moves the whole band
-  by 0.05 mm — i.e. the assumption was as good as it could have been, and
-  `foot_clear_span` stands.
+One discrepancy worth a second look: the display in
+`caliper-17-00-unlabelled.jpg` reads **17.00** to me, not 17.80. With 17.00
+the rear foot works out at 2.41 mm — identical to the front. It changes
+whether the two feet are the same height, which is the next point.
 
-They are **not** in the model. Two plausible clusters are not a measurement,
-and a wrong `rail_h` is the one error that quietly defeats the rails.
+### The underside is not flat, and that is a problem
+
+The rear section is thicker than the front by about 1.6 mm, and the rear
+foot is taller than the front foot. Confirmed by the side-profile photo.
+
+**Equal rails may therefore touch on one side only.** The rails bear on the
+underside directly, bypassing the laptop's own feet — but the underside is
+stepped, so a pair of 5 mm rails will meet the lower section first and leave
+a gap under the higher one. The laptop then rests on one rail and its own
+rubber, and the whole point of trapping it between two rails is lost.
+
+`rail_h_front` and `rail_h_rear` are now separate knobs, both defaulting to
+`rail_h`. **No value has been guessed**: the step (1.3–2.2 mm across the
+pairings) and the foot difference (0.8–1.4 mm) are each about as large as the
+scatter in the numbers they came from, so the model cannot be told which rail
+to raise, or by how much, without better data.
+
+#### The one measurement that settles it
+
+Everything above was derived by differencing. Measure it directly instead —
+**stand the laptop on a flat table as normal, and measure the gap from the
+table to the underside**, once just inboard of the rear foot strip and once
+just inboard of the front one. Two numbers, no subtraction, and their
+difference is exactly how much taller one rail has to be.
+
+A stack of paper slid under until it stops works if the calipers will not
+reach: 80 gsm office paper is very close to 0.1 mm a sheet.
 
 ### Still outstanding
 

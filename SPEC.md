@@ -379,6 +379,26 @@ up for free — the pad would become 28.5 mm.
 Switching is a three-line change (`fan_thickness = 15.5`, and the comment),
 so it is not worth doing until one is actually ordered.
 
+## 6.2 The laptop's underside is stepped — unresolved
+
+Measured 2026-09-04: the G14's underside is **not a plane**. The vented rear
+section is about 1.6 mm thicker than the front section, and the rear foot
+strip is taller than the front one to suit. The side profile confirms it.
+
+This matters because the rails bear on the underside directly, bypassing the
+laptop's own feet. Two rails of equal height will meet the lower section
+first and leave a gap under the higher one — so the laptop rests on one rail
+and its own rubber, and the point of trapping it between two rails is lost.
+
+`rail_h_front` and `rail_h_rear` are therefore separate variables, both
+defaulting to `rail_h`. **Neither has been given a guessed value.** The step
+reads 1.3–2.2 mm depending on which pair of thickness measurements is used,
+and the foot difference 0.8–1.4 mm; both spreads are as large as the effect,
+because every one of those numbers came from subtracting two ~14 mm readings.
+
+MEASUREMENTS.md says what to measure to settle it: the table-to-underside gap
+at each foot, taken directly rather than derived.
+
 ## 7. Material
 
 Test parts are 3D printed; production parts are aluminium. The model carries

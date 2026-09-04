@@ -85,14 +85,26 @@ fan_offset_y = 0;
 // 2026-09-04. See MEASUREMENTS.md. They are two long strips running nearly
 // the full width, not pads, and the band between them is not symmetric.
 foot_gap_rear   = 14.14;  // rear edge -> outboard edge of the rear strip
-foot_w_front    = 7.8;    // width of the front strip
 foot_clear_span = 166.0;  // between the strips: 118.72 + 47.30, taken in two
                           // parts because a 150 mm caliper cannot span it
 
-// The rear strip's width was not measured. Assuming it matches the front is
-// the only guess left in this block; if it turns out different, the whole
-// band shifts front-to-back by the difference and nothing else changes.
-foot_w_rear     = foot_w_front;
+// The strips are tapered in section: a wide base bonded to the case,
+// narrowing to a flat that bears on the table. Both ends measured, both
+// strips, so nothing here is assumed any more.
+foot_w_front    = 7.75;   // base width, front strip
+foot_w_rear     = 7.75;   // base width, rear strip
+foot_top_w      = 3.47;   // the flat that actually touches; mean of 3.42/47/52
+
+// Height of the strips. It could only be had by differencing two ~14 mm
+// thickness readings, so it inherits the error of both and lands anywhere in
+// 2.4-3.8 mm rather than on a number. That is fine, because only the upper
+// bound is load-bearing: rail_h has to clear it.
+laptop_foot_h_max = 3.8;
+
+// The underside is NOT flat. It steps by roughly 1.6 mm (the reads span
+// 1.3-2.2) where the thicker vented rear section meets the thinner front
+// section, so the two strips do not stand on a common plane. Not modelled:
+// the scatter is as large as the effect. See SPEC.md section 6.2.
 
 // Rails running left to right, just inboard of the laptop's feet. The laptop
 // sits between them and its feet butt against their outer faces, so it
@@ -102,9 +114,17 @@ foot_w_rear     = foot_w_front;
 //
 // rail_h must exceed the laptop's foot height or the laptop rests on its own
 // feet and the rails locate nothing. That height is MEASUREMENTS.md C3.
-rail_h       = 5;
+rail_h       = 5;   // common default for both rails
 rail_w       = 6;
 rail_x_inset = 16;
+
+// The two rails are separately adjustable, because the laptop's underside is
+// stepped and its own feet differ in height front to rear. Equal rails may
+// therefore touch on one side only, leaving the laptop resting on one rail
+// and its own rubber. Both default to rail_h until the step is measured
+// decisively - see SPEC.md 6.2 - at which point one of these grows.
+rail_h_front = rail_h;
+rail_h_rear  = rail_h;
 
 // ---------------------------------------------------------------------------
 // Side intake - open, not louvered
@@ -236,8 +256,13 @@ assert(fan_cy - fan_bore / 2 >= rail_front
        && fan_cy + fan_bore / 2 <= rail_rear,
        "fan_offset_y pushes the grille under a locating rail");
 
-// A rail lower than the laptop's own feet locates nothing.
-assert(rail_h > rail_w / 2, "rail_h too small for its rounded top");
+// A rail no taller than the laptop's own feet locates nothing: the laptop
+// would come to rest on its own rubber and the rails would never touch it.
+assert(min(rail_h_front, rail_h_rear) > laptop_foot_h_max,
+       str("rails (", rail_h_front, "/", rail_h_rear, " mm) do not clear the ",
+           "laptop's feet (up to ", laptop_foot_h_max, " mm)"));
+assert(min(rail_h_front, rail_h_rear) > rail_w / 2,
+       "rail height too small for its rounded top");
 
 // The apertures must stay openings rather than collapsing back into
 // slots, which is what the louvers were and what this replaced.
@@ -398,11 +423,11 @@ module grille_openings() {
 module locating_rails() {
     x0    = rail_x_inset;
     len_x = length - 2 * rail_x_inset;
-    for (y0 = [foot_band_front, rail_rear])
+    for (r = [[foot_band_front, rail_h_front], [rail_rear, rail_h_rear]])
         hull() {
-            translate([x0, y0 + rail_w / 2, height + rail_h - rail_w / 2])
+            translate([x0, r[0] + rail_w / 2, height + r[1] - rail_w / 2])
                 rotate([0, 90, 0]) cylinder(d = rail_w, h = len_x);
-            translate([x0, y0, height - 1])
+            translate([x0, r[0], height - 1])
                 cube([len_x, rail_w, 0.01]);
         }
 }
@@ -491,7 +516,8 @@ if (section) {
         translate([-1, -1, -1])
             // must clear the rails too, or their tops survive the cut as
             // detached slivers
-            cube([length + 2, cy + 1, height + explode + rail_h + 3]);
+            cube([length + 2, cy + 1,
+                  height + explode + max(rail_h_front, rail_h_rear) + 3]);
     }
 } else {
     model();
