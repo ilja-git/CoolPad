@@ -34,6 +34,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends openscad xvfb
           openscad --version
+          # tools/build.sh installs the greyscale colour scheme itself, via
+          # passwordless sudo. Confirm the target exists so a silent fallback
+          # to the default colours cannot slip through unnoticed.
+          test -d /usr/share/openscad/color-schemes/render
 
       # The system python on the runner is externally managed, so pip cannot
       # install into it.

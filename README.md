@@ -147,6 +147,17 @@ tools/build.sh --help
 `tools/summarise.py --out out --intake build/intake.txt` prints the measured
 bounding boxes — the same table CI puts in the run summary.
 
+The previews render greyscale on white, via `tools/colorscheme-mono.json`.
+OpenSCAD 2021.01 has no user path for colour schemes and ignores `color()`
+under `--render`, so the file has to sit beside the shipped ones. The build
+installs it for you where it can; if it cannot, it says so and falls back to
+the stock colours rather than pretending:
+
+```sh
+sudo cp tools/colorscheme-mono.json \
+        /usr/share/openscad/color-schemes/render/coolpad-mono.json
+```
+
 ### Or drive OpenSCAD directly
 
 ```sh

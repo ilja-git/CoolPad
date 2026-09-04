@@ -9,6 +9,8 @@
 #   tools/build.sh --no-usdz              skip USDZ (and its Python deps)
 #   tools/build.sh -D 'length=200'        override a model variable
 #
+# Previews come out greyscale on white; see README.md if that fails over.
+#
 # See README.md for setting up the toolchain.
 
 set -euo pipefail
@@ -85,6 +87,22 @@ if [ "$DO_USDZ" = 1 ] && ! "$PY" -c 'import pxr, stl' 2>/dev/null; then
     exit 1
 fi
 
+# Greyscale previews. OpenSCAD 2021.01 scans only its own install directory
+# for colour schemes - there is no user path in this version - and it ignores
+# color() when rendering with --render, so the scheme has to be dropped in
+# beside the shipped ones. Falls back loudly rather than silently producing
+# the wrong colours.
+CS_NAME=CoolPadMono
+CS_SRC=tools/colorscheme-mono.json
+CS_DST=/usr/share/openscad/color-schemes/render/coolpad-mono.json
+
+install_colorscheme() {
+    cmp -s "$CS_SRC" "$CS_DST" 2>/dev/null && return 0
+    cp     "$CS_SRC" "$CS_DST" 2>/dev/null && return 0
+    sudo -n cp "$CS_SRC" "$CS_DST" 2>/dev/null && return 0
+    return 1
+}
+
 mkdir -p "$OUT" "$BUILD"
 log="$BUILD/openscad.log"
 
@@ -137,8 +155,17 @@ if [ "$DO_PNG" = 1 ]; then
     step "Previews"
     # --render forces a full CGAL render, so the images match the geometry
     # exported above rather than the faster preview approximation.
+    scheme="$CS_NAME"
+    if ! install_colorscheme; then
+        scheme=Tomorrow
+        echo "warning: could not install the greyscale colour scheme, so the"
+        echo "         previews will come out in the default colours."
+        echo "         To fix it once and for all:"
+        echo "           sudo cp $CS_SRC $CS_DST"
+    fi
+
     preview=(--render --autocenter --viewall --imgsize=1600,1200
-             --colorscheme=Tomorrow)
+             --colorscheme="$scheme")
 
     render "$OUT/preview-bottom.png"    "${preview[@]}" -D 'part="bottom"'
     render "$OUT/preview-top.png"       "${preview[@]}" -D 'part="top"'

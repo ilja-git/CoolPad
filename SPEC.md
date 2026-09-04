@@ -261,9 +261,34 @@ is the part still to come.
 
 ### Powering it, and the parts to buy
 
-The chain is: **laptop USB-C port → angled cable → 5 V-to-12 V step-up →
-4-pin fan**. The cable is not built into the shell; it comes out through a
-side opening and can be run out of either side.
+The chain, corrected — the step-up cables on the market are **USB-A male**,
+so a USB-C-to-USB-A adapter is a required part, not an optional one:
+
+```
+laptop USB-C port
+  └─ USB-C male → USB-A female adapter   ← the angled part goes here
+       └─ USB-A male → 12 V step-up cable
+            └─ 4-pin fan
+```
+
+The cable is not built into the shell. It comes out through a side opening
+and can be run out of either side, since both are open.
+
+Two notes on the adapter:
+
+- It is the same part sold for plugging USB-A sticks into a USB-C laptop —
+  search *USB-C to USB-A female adapter* or *USB-C OTG adapter*, ~€5. Buy a
+  branded one: it has to present host-mode correctly, and the cheapest
+  no-name ones do not always.
+- **Put the right angle here**, not in the shell. An angled adapter at the
+  laptop, or an angled USB-C cable feeding a straight adapter, is a €5 part;
+  fitting an angled connector inside a 29 mm shell is not.
+
+One thing to watch: a USB-C port fitted with an A-female adapter offers 5 V
+with no negotiation, and a conservative port may allocate only 0.5–0.9 A.
+A boost cable rated 0.4 A at 12 V pulls roughly 1.1 A at 5 V *at full load* —
+the P14 Slim draws nowhere near its rating, so this should not bite, but it
+is the thing to suspect if the fan stutters or the port drops out.
 
 **Buy a cable with a step-up ("boost") circuit in it.** The trap is that
 plenty of USB-C-to-fan cables are dumb passthrough and deliver 5 V, which
@@ -282,9 +307,6 @@ Two things to check before ordering:
   exist and are the cheapest fix — or add a small PWM generator module.
   This is a genuine requirement, not a nicety, and it is easy to forget
   until the pad is assembled and screaming.
-
-A right-angle USB-C **adapter or cable** at the laptop end is a €5 part and
-a better answer than trying to fit an angled connector inside a 29 mm shell.
 
 ### The fan
 

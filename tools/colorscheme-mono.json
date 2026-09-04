@@ -1,0 +1,19 @@
+{
+    "name" : "CoolPadMono",
+    "index" : 2000,
+    "show-in-gui" : true,
+
+    "colors" : {
+        "background" :         "#ffffff",
+        "axes-color" :         "#333333",
+        "opencsg-face-front" : "#bdbdbd",
+        "opencsg-face-back" :  "#7d7d7d",
+        "cgal-face-front" :    "#c6c6c6",
+        "cgal-face-back" :     "#6b6b6b",
+        "cgal-face-2d" :       "#9a9a9a",
+        "cgal-edge-front" :    "#2b2b2b",
+        "cgal-edge-back" :     "#2b2b2b",
+        "cgal-edge-2d" :       "#2b2b2b",
+        "crosshair" :          "#555555"
+    }
+}
