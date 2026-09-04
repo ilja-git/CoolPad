@@ -39,6 +39,49 @@ are worth it for C3 only.
 
 ---
 
+## Received 2026-09-04 — raw caliper readings, not yet identified
+
+Photos and a Scaniverse scan are in `scan/` (gitignored — large, and not
+source; the numbers that matter belong in this file).
+
+**The scan is not usable for measurement.** It is metrically scaled, but its
+raw bounding box is 395 × 35 × 386 mm against a real 311 × 220 × 16, and even
+trimming outliers the thickness axis reads 21–23 mm. That is the ~1 cm noise
+floor expected of iPhone LiDAR. Keep it as a visual reference; take numbers
+from the calipers.
+
+These readings are legible on the caliper displays, but **which dimension
+each one is cannot be told from the photo**. Fill in the middle column:
+
+| Reading | What it measures | Feeds |
+| ------- | ---------------- | ----- |
+| 154.32 mm | | |
+| 118.72 mm | | |
+| 47.87 mm | | |
+| 47.30 mm | | |
+| 16.42 mm | | |
+| 14.14 mm | | |
+| 7.80 mm | | |
+
+Two of them (47.87 / 47.30) are clearly the same feature measured twice,
+which is a good sign for repeatability.
+
+### What the straight-down photos already settle
+
+The bottom intake is a **single very large perforated field**, not two
+openings — so B5 is answered, and one circular grille is the right shape. It
+spans most of the width and a broad band of the depth in the rear half,
+which means a 132 mm grille overlaps it heavily even before any offset. The
+fan-alignment risk (§8.2) is therefore much smaller than feared.
+
+There are **two long rubber foot strips**, one just inboard of the rear edge
+and one near the front edge, both running nearly the full width — so C1 is
+answered: strips, not pads, which is what the locating rails were designed
+around.
+
+Exact positions still need the numbers above, because scaling them off a
+photograph by eye is guesswork and would be worse than no data.
+
 ## A. Footprint — confirms what is already assumed
 
 | # | Measurement | Feeds | Need | Value |

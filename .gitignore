@@ -3,3 +3,7 @@
 *.usdz
 out/
 build/
+
+# Reference scan and measurement photos of the laptop. Large binaries, and
+# not source: MEASUREMENTS.md carries the numbers taken from them.
+scan/
