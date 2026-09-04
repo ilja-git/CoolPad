@@ -24,6 +24,11 @@ jobs:
   render:
     runs-on: ubuntu-latest
 
+    # Only the release step needs to write, and only on a tag. Everything
+    # else runs read-only.
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
 
@@ -86,6 +91,21 @@ jobs:
         run: |
           python3 tools/summarise.py --out out --intake build/intake.txt \
             --overrides "$ARGS" >> "$GITHUB_STEP_SUMMARY"
+
+      # Pushing a tag turns the same build into a GitHub Release, which is
+      # the only way to get a stable, one-tap download URL for a .usdz - an
+      # Actions artifact is a zip behind a login. gh is preinstalled on the
+      # runner, so this needs no third-party action.
+      - name: Publish a release for a tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 tools/summarise.py --out out --intake build/intake.txt \
+            > release-notes.md
+          gh release create "$GITHUB_REF_NAME" out/* \
+            --title "CoolPad $GITHUB_REF_NAME" \
+            --notes-file release-notes.md
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

@@ -78,11 +78,15 @@ Seen from the side, front to rear — this is the part that is new:
                                     laptop's hot air comes down here
 ```
 
-- **Intake: left and right walls, open.** One clear opening per half, per
-  side, with nothing across it. Bars over an intake are the cheapest thing to
+- **Intake: left and right walls, open.** **One oval per side**, not one per
+  half: the opening is defined once, spanning the joint, and each part clips
+  its own half out of it — so assembled, the side has a single continuous
+  hole with no waist where the parts meet. Bars over an intake are the cheapest thing to
   draw and the most expensive thing to breathe through, so the structure went
-  **inside**: ribs lying in the XZ plane, edge-on to the incoming air, where
-  they cost about 6% of the opening instead of a third.
+  **inside**: pillars lying in the XZ plane, edge-on to the incoming air.
+  Each half carries one and they meet at the joint, making a continuous post
+  from floor to lid. They cost about 6% of the opening; posts across it cost
+  a third.
 - **The rear of each side wall is solid** (`intake_rear_block`). The laptop
   dumps hot air off its back edge; without this block the pad inhales its own
   exhaust. This costs intake area on purpose.
@@ -407,7 +411,7 @@ that would change a dimension rather than confirm it. It is item 1 of
 
 ## 6.3 Rear exhaust shelf — specified, not yet modelled
 
-From `docs/idea-2-open-sides-and-exhaust.png`. Sketch, not to scale.
+From the author's sketch (kept in `local/`, not published). Not to scale.
 
 The shell stops at the rear rail. Behind it the laptop's rear overhangs with
 **nothing underneath**, so the hot air it dumps off its back edge falls into

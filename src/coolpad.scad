@@ -59,6 +59,15 @@ top_t   = 3;
 // rest on a lap. Purely ergonomic; nothing depends on it.
 base_round = 3;
 
+// How far the top surface reaches past the laptop's rear foot strip before
+// it stops. Enough that the foot is over solid material rather than hanging
+// off an edge, and no more - the exhaust wants to get out immediately after.
+shell_rear_margin = 3;
+
+// How far the shelf's trailing edge lifts. The shelf blocks the hot air the
+// laptop drops and turns it up and back, away from a lap.
+shelf_lift = 4;
+
 // The front is rolled to a much larger radius - a nose rather than an edge.
 // A full half-round would be height/2, but that pulls the front face back far
 // enough to undercut the front foot recesses, and moving those means moving
@@ -155,11 +164,16 @@ rail_h_rear  = rail_h + laptop_underside_step;
 // thing to breathe through, so the structure went inside instead: ribs
 // standing edge-on to the incoming air, where they cost almost nothing.
 intake_front = 14;   // solid material kept at the front corner
-band_margin  = 1;    // solid material kept above and below each band
+band_margin  = 2;    // solid wall kept above and below the opening. Not 1:
+                     // that leaves the lid's side skirt a 1 mm strip 170 mm
+                     // long, which neither prints nor holds its shape
 
 // Internal ribs. Plates lying in the XZ plane, so air entering through the
 // side wall travels along their faces rather than into their edges.
-rib_n   = 3;         // per side, per half
+// Pillars, not bars: each half carries one, and they meet at the joint to
+// make a continuous post from floor to lid. They also tie back to the wall,
+// which needs it now that a single opening runs nearly its whole height.
+rib_n   = 3;         // per side
 rib_t   = 3;         // thickness, in Y
 rib_len = 12;        // how far each reaches inboard of the wall
 
@@ -167,9 +181,11 @@ rib_len = 12;        // how far each reaches inboard of the wall
 // its back edge, and without this the pad inhales its own exhaust straight
 // back through the side intake. The length is a guess until MEASUREMENTS.md
 // D1-D3 land, and it is the single cheapest thing to retune afterwards.
-// REMEASURE: a pure guess. It waits on where the laptop actually exhausts,
-// which is MEASUREMENTS.md D1-D3 and has not been measured at all.
-intake_rear_block = 45;
+// Solid wall kept at the rear of each side opening, measured forward from
+// where the shell ends. Reduced from 45 now that the shell wall and the
+// shelf physically separate the exhaust; the block used to be doing that job
+// on its own. REMEASURE: still a judgement, waiting on D1-D3.
+intake_rear_block = 25;
 
 // ---------------------------------------------------------------------------
 // Joint, grille, feet
@@ -215,10 +231,18 @@ cx         = length / 2;
 cy         = width / 2;
 fan_cy     = cy + fan_offset_y;   // fan/grille centre
 
-lo_band = [floor_t + band_margin, split_z - band_margin];
-hi_band = [split_z + band_margin, height - top_t - band_margin];
+// ONE opening per side, not one per half. It is defined once, spanning the
+// joint, and each part clips its own half out of it - so assembled, the side
+// has a single continuous hole with no waist where the parts meet.
+open_band = [floor_t + band_margin, height - top_t - band_margin];
+open_h    = open_band[1] - open_band[0];
 
 // Inner faces of the locating rails: the clear span the grille must fit in.
+// The shell - walls, cavity, lid, rails - stops just behind the laptop's rear
+// foot strip. Everything behind that is floor only: the shelf, over which the
+// laptop's rear overhangs and dumps its hot air into open space.
+shell_rear = width - foot_gap_rear + shell_rear_margin;
+
 // Inboard edges of the laptop's foot strips, i.e. the clear band the rails
 // and grille have to live inside. Derived from the measurements above rather
 // than set, so a corrected measurement moves everything at once.
@@ -231,7 +255,7 @@ rail_rear  = width - foot_band_rear - rail_w;
 
 // One opening per half, per side. No posts: the ribs inside carry the wall.
 intake_y0   = intake_front;
-intake_y1   = width - intake_rear_block;
+intake_y1   = shell_rear - intake_rear_block;
 intake_span = intake_y1 - intake_y0;
 
 function rib_positions() =
@@ -240,16 +264,14 @@ function rib_positions() =
 // Free area of the intake, against the fan's bore. The intake is the
 // restriction in this design, so this number is worth watching.
 function stadium_area(w, h) = max(w - h, 0) * h + PI * pow(h / 2, 2);
-// Two sides, two halves, less what the ribs stand in.
-intake_area = 2 * (stadium_area(intake_span, lo_band[1] - lo_band[0])
-                   + stadium_area(intake_span, hi_band[1] - hi_band[0]))
-              - 2 * rib_n * rib_t * ((lo_band[1] - lo_band[0])
-                                     + (hi_band[1] - hi_band[0]));
+// Two sides, one opening each, less what the pillars stand in.
+intake_area = 2 * stadium_area(intake_span, open_h)
+              - 2 * rib_n * rib_t * open_h;
 bore_area   = PI * pow(fan_bore / 2, 2);
 
 echo(str("intake free area = ", round(intake_area), " mm2 = ",
          round(100 * intake_area / bore_area), "% of the fan bore, ",
-         "in 4 open sides"));
+         "in 2 open sides"));
 
 assert(height >= min_height,
        str("height=", height, " is too small: floor_t + plenum_gap + ",
@@ -277,6 +299,14 @@ assert(min([for (j = joint_points(), f = fan_points())
 // fan_offset_y by a long way.
 assert(foot_band_front > 0 && foot_band_rear > 0,
        "the measured foot band does not fit inside the pad's depth");
+// The lid has to reach past the rear foot strip, or the strip hangs over an
+// edge; and it has to stop short of the rear, or there is no shelf.
+assert(shell_rear > width - foot_gap_rear,
+       "the lid stops short of the laptop's rear foot strip");
+assert(shell_rear < width - wall,
+       "the lid runs to the back; there is no room left for the shelf");
+assert(rail_rear + rail_w < shell_rear,
+       "the rear rail falls outside the lid");
 assert(fan_bore <= rail_rear - rail_front,
        str("grille (", fan_bore, " mm) will not fit between the rails (",
            rail_rear - rail_front, " mm)"));
@@ -293,7 +323,7 @@ assert(min(rail_h_front, rail_h_rear) > rail_w / 2,
        "rail height too small for its rounded top");
 
 // The openings must stay openings rather than collapsing back into slots.
-assert(intake_span >= 4 * (lo_band[1] - lo_band[0]),
+assert(intake_span >= 4 * open_h,
        str("side openings have collapsed to ", intake_span, " mm: ",
            "intake_front + intake_rear_block leave too little wall"));
 
@@ -332,6 +362,27 @@ module rrect_round_base(l, w, r, h, f) {
     }
 }
 
+// The shell stops at shell_rear, square across the back, because the shelf
+// carries straight on behind it and a rounded end would step at the corners.
+module shell_clip(h) {
+    translate([-1, -1, -1]) cube([length + 2, shell_rear + 1, h + 2]);
+}
+
+// The floor beyond the shell: a plate of constant thickness tilting up to
+// shelf_lift at the rear edge. Built as the hull of two thin slabs, which is
+// exactly that solid, and started 2 mm inside the shell so the union
+// overlaps rather than meeting it face to face.
+module shelf() {
+    intersection() {
+        hull() {
+            translate([0, shell_rear - 2, 0])   cube([length, 0.01, floor_t]);
+            translate([0, width - 0.01, shelf_lift]) cube([length, 0.01, floor_t]);
+        }
+        rrect_round_base(length, width, corner_r, split_z + shelf_lift + 10,
+                         base_round);
+    }
+}
+
 module annulus(ro, ri, h) {
     difference() {
         cylinder(r = ro, h = h);
@@ -346,15 +397,15 @@ module aperture(w, h, d) {
         translate([0, y, 0]) rotate([0, 90, 0]) cylinder(d = h, h = d);
 }
 
-// The intake: one clear opening per side, between z0 and z1. Left and right
-// only - the front is solid, and so is the rear, which is reserved for the
-// hinge and for getting the laptop's hot air away.
-module intake_openings(z0, z1) {
-    h  = z1 - z0;
-    zc = (z0 + z1) / 2;
+// The intake: one oval per side, cut in full from whichever part is asking.
+// Each part exists over only half the height, so each takes half the oval and
+// the assembled pair leaves one continuous hole. Left and right only - the
+// front is solid, and so is the rear, which the shelf works behind.
+module intake_openings() {
     yc = (intake_y0 + intake_y1) / 2;
-    translate([-1, yc, zc])                aperture(intake_span, h, wall + 2);
-    translate([length - wall - 1, yc, zc]) aperture(intake_span, h, wall + 2);
+    zc = (open_band[0] + open_band[1]) / 2;
+    translate([-1, yc, zc])                aperture(intake_span, open_h, wall + 2);
+    translate([length - wall - 1, yc, zc]) aperture(intake_span, open_h, wall + 2);
 }
 
 // Ribs behind the opening, carrying the wall now that nothing spans it.
@@ -414,14 +465,22 @@ module bottom() {
     difference() {
         union() {
             difference() {
-                rrect_round_base(length, width, corner_r, split_z, base_round);
+                union() {
+                    intersection() {
+                        rrect_round_base(length, width, corner_r, split_z,
+                                         base_round);
+                        shell_clip(split_z);
+                    }
+                    shelf();
+                }
 
-                // cavity, open at the top
+                // cavity, open at the top, closed at the back by the wall
+                // the shelf hangs off
                 translate([wall, wall, floor_t])
-                    rrect(length - 2 * wall, width - 2 * wall,
+                    rrect(length - 2 * wall, shell_rear - 2 * wall,
                           max(corner_r - wall, 0.5), split_z);
 
-                intake_openings(lo_band[0], lo_band[1]);
+                intake_openings();
             }
 
             // ribs carrying the side walls, now that nothing spans the
@@ -512,12 +571,15 @@ module top_part() {
     nose_clip();
     difference() {
         union() {
-            // skirt + plate
+            // skirt + plate, stopping where the shell does
             difference() {
-                translate([0, 0, split_z])
-                    rrect(length, width, corner_r, height - split_z);
+                intersection() {
+                    translate([0, 0, split_z])
+                        rrect(length, width, corner_r, height - split_z);
+                    shell_clip(height);
+                }
                 translate([wall, wall, split_z - 1])
-                    rrect(length - 2 * wall, width - 2 * wall,
+                    rrect(length - 2 * wall, shell_rear - 2 * wall,
                           max(corner_r - wall, 0.5),
                           plate_z - split_z + 1);
             }
@@ -534,7 +596,7 @@ module top_part() {
         // exhaust grille
         translate([cx, fan_cy, plate_z]) grille_openings();
 
-        intake_openings(hi_band[0], hi_band[1]);
+        intake_openings();
 
         for (p = joint_points())
             translate([p[0], p[1], floor_t - boss_socket - 1])

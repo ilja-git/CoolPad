@@ -145,11 +145,13 @@ step "Printable parts"
 render_part "$OUT/coolpad-bottom.stl" -D 'part="bottom"'
 render_part "$OUT/coolpad-top.stl"    -D 'part="top"'
 
-# Assembled mesh, for viewing only - never printed, so no manifold gate.
-# Kept out of $OUT as an STL so it cannot be mistaken for something to
-# slice; it ships as USDZ instead.
+# Assembled mesh, for viewing only - several overlapping bodies plus a
+# stand-in fan, so no manifold gate. It ships as an STL as well as a USDZ
+# because a slicer is the quickest way to spot a problem in the whole
+# design, but the filename has to make it impossible to load by mistake.
 step "Assembly mesh"
 render "$BUILD/assembly.stl" -D 'part="assembly"'
+cp "$BUILD/assembly.stl" "$OUT/coolpad-assembly-do-not-print.stl"
 
 if [ "$DO_PNG" = 1 ]; then
     step "Previews"
@@ -180,6 +182,11 @@ if [ "$DO_PNG" = 1 ]; then
     # which is what sets the pad's height
     render "$OUT/preview-section.png"   "${preview[@]}" \
         --camera=0,0,0,72,0,12,0 -D 'part="assembly"' -D 'section=true'
+    # from behind: the only view that shows the lid stopping and the floor
+    # carrying on as the exhaust shelf. The fan is dropped because it hides
+    # the drop from this angle.
+    render "$OUT/preview-rear.png"      "${preview[@]}" \
+        --camera=0,0,0,62,0,205,0 -D 'part="assembly"' -D 'show_fan=false'
 fi
 
 # The model echoes the louver free area on every render; it is the

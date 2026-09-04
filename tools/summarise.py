@@ -58,6 +58,8 @@ def main():
     for f in files:
         d = bbox(f)
         name = os.path.basename(f).replace("coolpad-", "").replace(".stl", "")
+        if "do-not-print" in name:
+            name = name.replace("-do-not-print", "") + " *"
         if d is None:
             print(f"| {name} | ? | ? | ? |")
         else:
@@ -75,11 +77,14 @@ def main():
         except OSError:
             pass
 
-    print("\nThe top part's Z includes the 4 mm stop ridges.")
+    print("\nThe top part's Z includes the locating rails.")
+    print("\n`assembly *` is overlapping bodies plus a stand-in fan — for "
+          "looking at, never for slicing.")
     print("\nSTLs, USDZ and previews are in the artifact below.")
     print("\nOn an iPhone: download the artifact, unzip it in Files, then tap "
           "a `.usdz` - it opens in Quick Look, and the AR button shows it at "
-          "real size.")
+          "real size. Pushing a tag skips all of that: a release attaches "
+          "each file on its own URL, so a `.usdz` is one tap in Safari.")
     return 0
 
 

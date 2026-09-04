@@ -42,10 +42,16 @@ and uploads an artifact named `coolpad-<sha>`:
 - `coolpad-bottom.stl`, `coolpad-top.stl` — the printable parts
 - `coolpad-bottom.usdz`, `coolpad-top.usdz`, `coolpad-assembly.usdz` —
   the same geometry in a format iOS opens natively (see below)
+- `coolpad-assembly-do-not-print.stl` — the whole thing in one mesh, for
+  spotting problems in a slicer or viewer. It is overlapping bodies plus a
+  stand-in fan, so it is **not** a printable part; the name is deliberately
+  hard to load by accident.
 - `preview-bottom.png`, `preview-top.png`, `preview-top-under.png`
 - `preview-assembly.png` — exploded, showing how it goes together
 - `preview-section.png` — cut in half; the one that shows the plenum gap
   under the fan
+- `preview-rear.png` — from behind; the one that shows the lid stopping and
+  the floor carrying on as the exhaust shelf
 
 Open the repo on GitHub → **Actions** → the latest **Render** run. The run
 summary lists the measured bounding boxes, and the artifact is at the bottom.
@@ -72,6 +78,30 @@ product, assembled, fan included.
 
 The PNGs remain the quickest glance, and the run summary carries the
 measured dimensions.
+
+## Releases — a link you can just tap
+
+An Actions artifact is a zip behind a login, which is useless for sharing and
+awkward on a phone. **Push a tag and the same build becomes a GitHub
+Release**, with every file attached individually and each one on a stable
+URL — so a `.usdz` is one tap in Safari, straight into Quick Look.
+
+```sh
+git tag v0.6
+git push origin v0.6
+```
+
+That is the whole process. The workflow already runs on tags; it just also
+publishes when the tag starts with `v`. The release notes are the measured
+bounding boxes and intake area, generated from the build.
+
+To fix a bad tag, delete it in both places and push again:
+
+```sh
+git tag -d v0.6 && git push origin :refs/tags/v0.6
+```
+
+There is no third-party Action involved — `gh` is preinstalled on the runner.
 
 ### Rendering different dimensions without a commit
 
