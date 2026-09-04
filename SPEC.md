@@ -125,7 +125,7 @@ The model computes and echoes the free area on every render, and CI prints
 it in the run summary:
 
 ```
-intake free area = 5124 mm2 = 37% of the fan bore, in 8 apertures
+intake free area = 5699 mm2 = 42% of the fan bore, in 4 open sides
 ```
 
 The history is worth keeping, because it shows what each decision cost:
